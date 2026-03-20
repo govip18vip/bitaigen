@@ -1,8 +1,6 @@
 // src/i18n/ui.ts
 // ─────────────────────────────────────────────────────────────
-// Complete 5-language UI dictionary.
-// Keys are used as data-i18n="key" attributes in HTML.
-// Client-side script swaps text on load & language change.
+// 完整的多语言 UI 字典 + 路径路由工具函数
 // ─────────────────────────────────────────────────────────────
 
 export const LANGUAGES = {
@@ -16,7 +14,7 @@ export const LANGUAGES = {
 export type Lang = keyof typeof LANGUAGES;
 export const DEFAULT_LANG: Lang = "zh-CN";
 
-// Maps browser navigator.language → our Lang code
+// 浏览器 navigator.language → 内部 Lang code
 export const BROWSER_LANG_MAP: Record<string, Lang> = {
   "zh":    "zh-CN",
   "zh-CN": "zh-CN",
@@ -39,7 +37,7 @@ export const BROWSER_LANG_MAP: Record<string, Lang> = {
   "pt-PT": "pt",
 };
 
-// HTML lang attribute values
+// HTML lang 属性值
 export const HTML_LANG: Record<Lang, string> = {
   "zh-CN": "zh-CN",
   "zh-TW": "zh-TW",
@@ -49,8 +47,33 @@ export const HTML_LANG: Record<Lang, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Full UI translation strings
-// Add new keys here → add data-i18n="key" to HTML elements
+// URL 路径 ↔ 语言映射
+// 默认语言 zh-CN 不加路径前缀（即 /），其余语言加前缀
+// ─────────────────────────────────────────────────────────────
+
+/** URL 路径段（小写）→ 内部 Lang key */
+export const LANG_PATH_MAP: Record<string, Lang> = {
+  "zh-cn": "zh-CN",
+  "zh-tw": "zh-TW",
+  "en":    "en",
+  "es":    "es",
+  "pt":    "pt",
+};
+
+/** 内部 Lang key → URL 路径段（默认语言为空字符串） */
+export const LANG_TO_PATH: Record<Lang, string> = {
+  "zh-CN": "",
+  "zh-TW": "zh-tw",
+  "en":    "en",
+  "es":    "es",
+  "pt":    "pt",
+};
+
+/** 所有非默认语言的 URL 路径段列表 */
+export const LANG_PATH_SEGMENTS = Object.values(LANG_TO_PATH).filter(Boolean);
+
+// ─────────────────────────────────────────────────────────────
+// UI 翻译字典
 // ─────────────────────────────────────────────────────────────
 export const UI: Record<Lang, Record<string, string>> = {
   "zh-CN": {
@@ -78,13 +101,13 @@ export const UI: Record<Lang, Record<string, string>> = {
     "nav.about":    "关于",
 
     // ── Sub-nav labels ──
-    "sub.news.latest":   "最新",
-    "sub.news.featured": "推荐",
-    "sub.news.btc":      "BTC",
-    "sub.news.eth":      "ETH",
-    "sub.news.defi":     "DeFi",
-    "sub.news.nft":      "NFT",
-    "sub.news.policy":   "监管",
+    "sub.news.latest":       "最新",
+    "sub.news.featured":     "推荐",
+    "sub.news.btc":          "BTC",
+    "sub.news.eth":          "ETH",
+    "sub.news.defi":         "DeFi",
+    "sub.news.nft":          "NFT",
+    "sub.news.policy":       "监管",
     "sub.tutorial.beginner": "新手入门",
     "sub.tutorial.exchange": "交易所",
     "sub.tutorial.wallet":   "钱包",
@@ -114,64 +137,64 @@ export const UI: Record<Lang, Record<string, string>> = {
     "section.tags":     "标签",
 
     // ── Article page ──
-    "post.toc":        "目录",
-    "post.share":      "分享本文",
-    "post.copy":       "复制",
-    "post.copied":     "已复制",
-    "post.prev":       "上一篇",
-    "post.next":       "下一篇",
-    "post.readmore":   "阅读全文",
-    "post.published":  "发布于",
-    "post.updated":    "更新于",
-    "post.author":     "作者",
+    "post.toc":          "目录",
+    "post.share":        "分享本文",
+    "post.copy":         "复制",
+    "post.copied":       "已复制",
+    "post.prev":         "上一篇",
+    "post.next":         "下一篇",
+    "post.readmore":     "阅读全文",
+    "post.published":    "发布于",
+    "post.updated":      "更新于",
+    "post.author":       "作者",
     "post.translations": "其他语言版本",
 
     // ── Language switcher ──
-    "lang.label":    "语言",
-    "lang.auto":     "自动检测",
-    "lang.zh-CN":    "简体中文",
-    "lang.zh-TW":    "繁體中文",
-    "lang.en":       "English",
-    "lang.es":       "Español",
-    "lang.pt":       "Português",
+    "lang.label": "语言",
+    "lang.auto":  "自动检测",
+    "lang.zh-CN": "简体中文",
+    "lang.zh-TW": "繁體中文",
+    "lang.en":    "English",
+    "lang.es":    "Español",
+    "lang.pt":    "Português",
 
-    // ── About block (GEO) ──
-    "about.btc.title":  "₿ 比特币(BTC)资讯",
-    "about.btc.desc":   "实时追踪BTC价格走势、链上数据分析及宏观市场解读。",
-    "about.ex.title":   "🏦 交易所使用教程",
-    "about.ex.desc":    "涵盖币安、OKX、Bybit等主流交易所的完整图文教程。",
+    // ── About block ──
+    "about.btc.title":    "₿ 比特币(BTC)资讯",
+    "about.btc.desc":     "实时追踪BTC价格走势、链上数据分析及宏观市场解读。",
+    "about.ex.title":     "🏦 交易所使用教程",
+    "about.ex.desc":      "涵盖币安、OKX、Bybit等主流交易所的完整图文教程。",
     "about.wallet.title": "🔐 钱包安全指南",
     "about.wallet.desc":  "MetaMask、Ledger等钱包安全配置及防钓鱼最佳实践。",
 
     // ── Footer ──
-    "footer.rights":     "版权所有",
-    "footer.slogan":     "区块链资讯 · 教育向导",
-    "footer.about":      "关于我们",
-    "footer.col.news":   "资讯专区",
-    "footer.col.guide":  "教程指南",
-    "footer.col.links":  "快速链接",
+    "footer.rights":   "版权所有",
+    "footer.slogan":   "区块链资讯 · 教育向导",
+    "footer.about":    "关于我们",
+    "footer.col.news": "资讯专区",
+    "footer.col.guide":"教程指南",
+    "footer.col.links":"快速链接",
 
-    // ── Category labels (for taxonomy) ──
-    "cat.flash":        "快讯",
-    "cat.news":         "资讯",
-    "cat.btc":          "比特币",
-    "cat.eth":          "以太坊",
-    "cat.defi":         "DeFi",
-    "cat.nft":          "NFT",
-    "cat.policy":       "监管政策",
-    "cat.tutorial":     "教程",
-    "cat.beginner":     "新手入门",
-    "cat.exchange":     "交易所",
-    "cat.wallet":       "钱包安全",
-    "cat.futures":      "合约交易",
-    "cat.airdrop":      "空投",
-    "cat.market":       "行情",
-    "cat.analysis":     "深度分析",
-    "cat.onchain":      "链上数据",
-    "cat.topic":        "专题",
-    "cat.web3":         "Web3",
-    "cat.mining":       "挖矿",
-    "cat.layer2":       "Layer 2",
+    // ── Category labels ──
+    "cat.flash":    "快讯",
+    "cat.news":     "资讯",
+    "cat.btc":      "比特币",
+    "cat.eth":      "以太坊",
+    "cat.defi":     "DeFi",
+    "cat.nft":      "NFT",
+    "cat.policy":   "监管政策",
+    "cat.tutorial": "教程",
+    "cat.beginner": "新手入门",
+    "cat.exchange": "交易所",
+    "cat.wallet":   "钱包安全",
+    "cat.futures":  "合约交易",
+    "cat.airdrop":  "空投",
+    "cat.market":   "行情",
+    "cat.analysis": "深度分析",
+    "cat.onchain":  "链上数据",
+    "cat.topic":    "专题",
+    "cat.web3":     "Web3",
+    "cat.mining":   "挖矿",
+    "cat.layer2":   "Layer 2",
   },
 
   "zh-TW": {
@@ -192,13 +215,13 @@ export const UI: Record<Lang, Record<string, string>> = {
     "nav.topic":    "專題",
     "nav.search":   "搜尋",
     "nav.about":    "關於",
-    "sub.news.latest":   "最新",
-    "sub.news.featured": "推薦",
-    "sub.news.btc":      "BTC",
-    "sub.news.eth":      "ETH",
-    "sub.news.defi":     "DeFi",
-    "sub.news.nft":      "NFT",
-    "sub.news.policy":   "監管",
+    "sub.news.latest":       "最新",
+    "sub.news.featured":     "推薦",
+    "sub.news.btc":          "BTC",
+    "sub.news.eth":          "ETH",
+    "sub.news.defi":         "DeFi",
+    "sub.news.nft":          "NFT",
+    "sub.news.policy":       "監管",
     "sub.tutorial.beginner": "新手入門",
     "sub.tutorial.exchange": "交易所",
     "sub.tutorial.wallet":   "錢包",
@@ -222,36 +245,36 @@ export const UI: Record<Lang, Record<string, string>> = {
     "section.all":      "全部文章",
     "section.related":  "相關文章",
     "section.tags":     "標籤",
-    "post.toc":        "目錄",
-    "post.share":      "分享本文",
-    "post.copy":       "複製",
-    "post.copied":     "已複製",
-    "post.prev":       "上一篇",
-    "post.next":       "下一篇",
-    "post.readmore":   "閱讀全文",
-    "post.published":  "發佈於",
-    "post.updated":    "更新於",
-    "post.author":     "作者",
+    "post.toc":          "目錄",
+    "post.share":        "分享本文",
+    "post.copy":         "複製",
+    "post.copied":       "已複製",
+    "post.prev":         "上一篇",
+    "post.next":         "下一篇",
+    "post.readmore":     "閱讀全文",
+    "post.published":    "發佈於",
+    "post.updated":      "更新於",
+    "post.author":       "作者",
     "post.translations": "其他語言版本",
-    "lang.label":    "語言",
-    "lang.auto":     "自動偵測",
-    "lang.zh-CN":    "简体中文",
-    "lang.zh-TW":    "繁體中文",
-    "lang.en":       "English",
-    "lang.es":       "Español",
-    "lang.pt":       "Português",
-    "about.btc.title":  "₿ 比特幣(BTC)資訊",
-    "about.btc.desc":   "即時追蹤BTC價格走勢、鏈上數據分析及宏觀市場解讀。",
-    "about.ex.title":   "🏦 交易所使用教程",
-    "about.ex.desc":    "涵蓋幣安、OKX等主流交易所的完整圖文教程。",
+    "lang.label": "語言",
+    "lang.auto":  "自動偵測",
+    "lang.zh-CN": "简体中文",
+    "lang.zh-TW": "繁體中文",
+    "lang.en":    "English",
+    "lang.es":    "Español",
+    "lang.pt":    "Português",
+    "about.btc.title":    "₿ 比特幣(BTC)資訊",
+    "about.btc.desc":     "即時追蹤BTC價格走勢、鏈上數據分析及宏觀市場解讀。",
+    "about.ex.title":     "🏦 交易所使用教程",
+    "about.ex.desc":      "涵蓋幣安、OKX等主流交易所的完整圖文教程。",
     "about.wallet.title": "🔐 錢包安全指南",
     "about.wallet.desc":  "MetaMask、Ledger等錢包安全配置及防釣魚最佳實踐。",
-    "footer.rights":     "版權所有",
-    "footer.slogan":     "區塊鏈資訊 · 教育向導",
-    "footer.about":      "關於我們",
-    "footer.col.news":   "資訊專區",
-    "footer.col.guide":  "教程指南",
-    "footer.col.links":  "快速連結",
+    "footer.rights":   "版權所有",
+    "footer.slogan":   "區塊鏈資訊 · 教育向導",
+    "footer.about":    "關於我們",
+    "footer.col.news": "資訊專區",
+    "footer.col.guide":"教程指南",
+    "footer.col.links":"快速連結",
     "cat.flash": "快訊", "cat.news": "資訊", "cat.btc": "比特幣",
     "cat.eth": "以太坊", "cat.defi": "DeFi", "cat.nft": "NFT",
     "cat.policy": "監管政策", "cat.tutorial": "教程", "cat.beginner": "新手入門",
@@ -279,13 +302,13 @@ export const UI: Record<Lang, Record<string, string>> = {
     "nav.topic":    "Topics",
     "nav.search":   "Search",
     "nav.about":    "About",
-    "sub.news.latest":   "Latest",
-    "sub.news.featured": "Featured",
-    "sub.news.btc":      "BTC",
-    "sub.news.eth":      "ETH",
-    "sub.news.defi":     "DeFi",
-    "sub.news.nft":      "NFT",
-    "sub.news.policy":   "Regulation",
+    "sub.news.latest":       "Latest",
+    "sub.news.featured":     "Featured",
+    "sub.news.btc":          "BTC",
+    "sub.news.eth":          "ETH",
+    "sub.news.defi":         "DeFi",
+    "sub.news.nft":          "NFT",
+    "sub.news.policy":       "Regulation",
     "sub.tutorial.beginner": "Beginners",
     "sub.tutorial.exchange": "Exchanges",
     "sub.tutorial.wallet":   "Wallets",
@@ -309,36 +332,36 @@ export const UI: Record<Lang, Record<string, string>> = {
     "section.all":      "All Articles",
     "section.related":  "Related Articles",
     "section.tags":     "Tags",
-    "post.toc":        "Contents",
-    "post.share":      "Share",
-    "post.copy":       "Copy",
-    "post.copied":     "Copied!",
-    "post.prev":       "Previous",
-    "post.next":       "Next",
-    "post.readmore":   "Read More",
-    "post.published":  "Published",
-    "post.updated":    "Updated",
-    "post.author":     "Author",
+    "post.toc":          "Contents",
+    "post.share":        "Share",
+    "post.copy":         "Copy",
+    "post.copied":       "Copied!",
+    "post.prev":         "Previous",
+    "post.next":         "Next",
+    "post.readmore":     "Read More",
+    "post.published":    "Published",
+    "post.updated":      "Updated",
+    "post.author":       "Author",
     "post.translations": "Available in other languages",
-    "lang.label":    "Language",
-    "lang.auto":     "Auto-detect",
-    "lang.zh-CN":    "简体中文",
-    "lang.zh-TW":    "繁體中文",
-    "lang.en":       "English",
-    "lang.es":       "Español",
-    "lang.pt":       "Português",
-    "about.btc.title":  "₿ Bitcoin (BTC) News",
-    "about.btc.desc":   "Real-time BTC price tracking, on-chain data analysis and macro market insights.",
-    "about.ex.title":   "🏦 Exchange Tutorials",
-    "about.ex.desc":    "Step-by-step guides for Binance, OKX, Bybit and other major exchanges.",
+    "lang.label": "Language",
+    "lang.auto":  "Auto-detect",
+    "lang.zh-CN": "简体中文",
+    "lang.zh-TW": "繁體中文",
+    "lang.en":    "English",
+    "lang.es":    "Español",
+    "lang.pt":    "Português",
+    "about.btc.title":    "₿ Bitcoin (BTC) News",
+    "about.btc.desc":     "Real-time BTC price tracking, on-chain data analysis and macro market insights.",
+    "about.ex.title":     "🏦 Exchange Tutorials",
+    "about.ex.desc":      "Step-by-step guides for Binance, OKX, Bybit and other major exchanges.",
     "about.wallet.title": "🔐 Wallet Security",
     "about.wallet.desc":  "Expert guides for MetaMask, Ledger and Trezor, covering security best practices.",
-    "footer.rights":     "All rights reserved",
-    "footer.slogan":     "Blockchain News · Education",
-    "footer.about":      "About Us",
-    "footer.col.news":   "News",
-    "footer.col.guide":  "Guides",
-    "footer.col.links":  "Quick Links",
+    "footer.rights":   "All rights reserved",
+    "footer.slogan":   "Blockchain News · Education",
+    "footer.about":    "About Us",
+    "footer.col.news": "News",
+    "footer.col.guide":"Guides",
+    "footer.col.links":"Quick Links",
     "cat.flash": "Flash", "cat.news": "News", "cat.btc": "Bitcoin",
     "cat.eth": "Ethereum", "cat.defi": "DeFi", "cat.nft": "NFT",
     "cat.policy": "Regulation", "cat.tutorial": "Tutorials", "cat.beginner": "Beginners",
@@ -366,13 +389,13 @@ export const UI: Record<Lang, Record<string, string>> = {
     "nav.topic":    "Temas",
     "nav.search":   "Buscar",
     "nav.about":    "Acerca de",
-    "sub.news.latest":   "Reciente",
-    "sub.news.featured": "Destacado",
-    "sub.news.btc":      "BTC",
-    "sub.news.eth":      "ETH",
-    "sub.news.defi":     "DeFi",
-    "sub.news.nft":      "NFT",
-    "sub.news.policy":   "Regulación",
+    "sub.news.latest":       "Reciente",
+    "sub.news.featured":     "Destacado",
+    "sub.news.btc":          "BTC",
+    "sub.news.eth":          "ETH",
+    "sub.news.defi":         "DeFi",
+    "sub.news.nft":          "NFT",
+    "sub.news.policy":       "Regulación",
     "sub.tutorial.beginner": "Principiantes",
     "sub.tutorial.exchange": "Exchanges",
     "sub.tutorial.wallet":   "Carteras",
@@ -396,36 +419,36 @@ export const UI: Record<Lang, Record<string, string>> = {
     "section.all":      "Todos los Artículos",
     "section.related":  "Artículos Relacionados",
     "section.tags":     "Etiquetas",
-    "post.toc":        "Contenido",
-    "post.share":      "Compartir",
-    "post.copy":       "Copiar",
-    "post.copied":     "¡Copiado!",
-    "post.prev":       "Anterior",
-    "post.next":       "Siguiente",
-    "post.readmore":   "Leer Más",
-    "post.published":  "Publicado",
-    "post.updated":    "Actualizado",
-    "post.author":     "Autor",
+    "post.toc":          "Contenido",
+    "post.share":        "Compartir",
+    "post.copy":         "Copiar",
+    "post.copied":       "¡Copiado!",
+    "post.prev":         "Anterior",
+    "post.next":         "Siguiente",
+    "post.readmore":     "Leer Más",
+    "post.published":    "Publicado",
+    "post.updated":      "Actualizado",
+    "post.author":       "Autor",
     "post.translations": "Disponible en otros idiomas",
-    "lang.label":    "Idioma",
-    "lang.auto":     "Detección automática",
-    "lang.zh-CN":    "简体中文",
-    "lang.zh-TW":    "繁體中文",
-    "lang.en":       "English",
-    "lang.es":       "Español",
-    "lang.pt":       "Português",
-    "about.btc.title":  "₿ Noticias de Bitcoin (BTC)",
-    "about.btc.desc":   "Seguimiento en tiempo real del precio de BTC, análisis de datos on-chain.",
-    "about.ex.title":   "🏦 Tutoriales de Exchanges",
-    "about.ex.desc":    "Guías paso a paso para Binance, OKX, Bybit y otros exchanges principales.",
+    "lang.label": "Idioma",
+    "lang.auto":  "Detección automática",
+    "lang.zh-CN": "简体中文",
+    "lang.zh-TW": "繁體中文",
+    "lang.en":    "English",
+    "lang.es":    "Español",
+    "lang.pt":    "Português",
+    "about.btc.title":    "₿ Noticias de Bitcoin (BTC)",
+    "about.btc.desc":     "Seguimiento en tiempo real del precio de BTC, análisis de datos on-chain.",
+    "about.ex.title":     "🏦 Tutoriales de Exchanges",
+    "about.ex.desc":      "Guías paso a paso para Binance, OKX, Bybit y otros exchanges principales.",
     "about.wallet.title": "🔐 Seguridad de Carteras",
     "about.wallet.desc":  "Guías especializadas para MetaMask, Ledger y Trezor.",
-    "footer.rights":     "Todos los derechos reservados",
-    "footer.slogan":     "Noticias Blockchain · Educación",
-    "footer.about":      "Sobre Nosotros",
-    "footer.col.news":   "Noticias",
-    "footer.col.guide":  "Guías",
-    "footer.col.links":  "Accesos Directos",
+    "footer.rights":   "Todos los derechos reservados",
+    "footer.slogan":   "Noticias Blockchain · Educación",
+    "footer.about":    "Sobre Nosotros",
+    "footer.col.news": "Noticias",
+    "footer.col.guide":"Guías",
+    "footer.col.links":"Accesos Directos",
     "cat.flash": "Flash", "cat.news": "Noticias", "cat.btc": "Bitcoin",
     "cat.eth": "Ethereum", "cat.defi": "DeFi", "cat.nft": "NFT",
     "cat.policy": "Regulación", "cat.tutorial": "Tutoriales", "cat.beginner": "Principiantes",
@@ -453,13 +476,13 @@ export const UI: Record<Lang, Record<string, string>> = {
     "nav.topic":    "Tópicos",
     "nav.search":   "Pesquisar",
     "nav.about":    "Sobre",
-    "sub.news.latest":   "Recente",
-    "sub.news.featured": "Destaque",
-    "sub.news.btc":      "BTC",
-    "sub.news.eth":      "ETH",
-    "sub.news.defi":     "DeFi",
-    "sub.news.nft":      "NFT",
-    "sub.news.policy":   "Regulação",
+    "sub.news.latest":       "Recente",
+    "sub.news.featured":     "Destaque",
+    "sub.news.btc":          "BTC",
+    "sub.news.eth":          "ETH",
+    "sub.news.defi":         "DeFi",
+    "sub.news.nft":          "NFT",
+    "sub.news.policy":       "Regulação",
     "sub.tutorial.beginner": "Iniciantes",
     "sub.tutorial.exchange": "Exchanges",
     "sub.tutorial.wallet":   "Carteiras",
@@ -483,36 +506,36 @@ export const UI: Record<Lang, Record<string, string>> = {
     "section.all":      "Todos os Artigos",
     "section.related":  "Artigos Relacionados",
     "section.tags":     "Tags",
-    "post.toc":        "Conteúdo",
-    "post.share":      "Compartilhar",
-    "post.copy":       "Copiar",
-    "post.copied":     "Copiado!",
-    "post.prev":       "Anterior",
-    "post.next":       "Próximo",
-    "post.readmore":   "Ler Mais",
-    "post.published":  "Publicado",
-    "post.updated":    "Atualizado",
-    "post.author":     "Autor",
+    "post.toc":          "Conteúdo",
+    "post.share":        "Compartilhar",
+    "post.copy":         "Copiar",
+    "post.copied":       "Copiado!",
+    "post.prev":         "Anterior",
+    "post.next":         "Próximo",
+    "post.readmore":     "Ler Mais",
+    "post.published":    "Publicado",
+    "post.updated":      "Atualizado",
+    "post.author":       "Autor",
     "post.translations": "Disponível em outros idiomas",
-    "lang.label":    "Idioma",
-    "lang.auto":     "Detecção automática",
-    "lang.zh-CN":    "简体中文",
-    "lang.zh-TW":    "繁體中文",
-    "lang.en":       "English",
-    "lang.es":       "Español",
-    "lang.pt":       "Português",
-    "about.btc.title":  "₿ Notícias de Bitcoin (BTC)",
-    "about.btc.desc":   "Rastreamento em tempo real do preço BTC, análise de dados on-chain.",
-    "about.ex.title":   "🏦 Tutoriais de Exchanges",
-    "about.ex.desc":    "Guias passo a passo para Binance, OKX, Bybit e outros exchanges.",
+    "lang.label": "Idioma",
+    "lang.auto":  "Detecção automática",
+    "lang.zh-CN": "简体中文",
+    "lang.zh-TW": "繁體中文",
+    "lang.en":    "English",
+    "lang.es":    "Español",
+    "lang.pt":    "Português",
+    "about.btc.title":    "₿ Notícias de Bitcoin (BTC)",
+    "about.btc.desc":     "Rastreamento em tempo real do preço BTC, análise de dados on-chain.",
+    "about.ex.title":     "🏦 Tutoriais de Exchanges",
+    "about.ex.desc":      "Guias passo a passo para Binance, OKX, Bybit e outros exchanges.",
     "about.wallet.title": "🔐 Segurança de Carteiras",
     "about.wallet.desc":  "Guias especializados para MetaMask, Ledger e Trezor.",
-    "footer.rights":     "Todos os direitos reservados",
-    "footer.slogan":     "Notícias Blockchain · Educação",
-    "footer.about":      "Sobre Nós",
-    "footer.col.news":   "Notícias",
-    "footer.col.guide":  "Guias",
-    "footer.col.links":  "Links Rápidos",
+    "footer.rights":   "Todos os direitos reservados",
+    "footer.slogan":   "Notícias Blockchain · Educação",
+    "footer.about":    "Sobre Nós",
+    "footer.col.news": "Notícias",
+    "footer.col.guide":"Guias",
+    "footer.col.links":"Links Rápidos",
     "cat.flash": "Flash", "cat.news": "Notícias", "cat.btc": "Bitcoin",
     "cat.eth": "Ethereum", "cat.defi": "DeFi", "cat.nft": "NFT",
     "cat.policy": "Regulação", "cat.tutorial": "Tutoriais", "cat.beginner": "Iniciantes",
@@ -524,8 +547,7 @@ export const UI: Record<Lang, Record<string, string>> = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Taxonomy: top-level categories + sub-categories
-// Each has: key (maps to tag), label key (maps to UI[lang])
+// Taxonomy（左侧导航分类树）
 // ─────────────────────────────────────────────────────────────
 export const TAXONOMY = [
   {
@@ -585,39 +607,65 @@ export const TAXONOMY = [
 ] as const;
 
 // ─────────────────────────────────────────────────────────────
-// Server-side helpers (used in Astro frontmatter)
+// 工具函数
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * 从 URL 路径第一段识别语言。
+ *   /en/posts/ → "en"
+ *   /zh-tw/    → "zh-TW"
+ *   /posts/    → DEFAULT_LANG (zh-CN)
+ */
 export function getLang(url: URL): Lang {
-  const stored = url.searchParams.get("hl");
-  if (stored && stored in LANGUAGES) return stored as Lang;
+  const firstSeg = url.pathname.split("/").filter(Boolean)[0] ?? "";
+  const lower = firstSeg.toLowerCase();
+  if (lower in LANG_PATH_MAP) return LANG_PATH_MAP[lower];
+  // 兼容旧版 ?hl= 参数
+  const hl = url.searchParams.get("hl");
+  if (hl && hl in LANGUAGES) return hl as Lang;
   return DEFAULT_LANG;
 }
 
-export function t(lang: Lang, key: string): string {
-  return UI[lang]?.[key] ?? UI[DEFAULT_LANG]?.[key] ?? key;
+/**
+ * 去掉 URL 路径中的语言前缀，返回纯路径（始终以 / 开头）。
+ *   /en/posts/  → /posts/
+ *   /zh-tw/     → /
+ *   /posts/     → /posts/
+ */
+export function stripLangPrefix(pathname: string): string {
+  for (const seg of LANG_PATH_SEGMENTS) {
+    if (pathname === `/${seg}` || pathname.startsWith(`/${seg}/`)) {
+      return pathname.slice(seg.length + 1) || "/";
+    }
+  }
+  return pathname;
 }
 
-// hreflang alternates for SEO
+/**
+ * 为当前页面构建所有语言版本的 hreflang 链接。
+ */
 export function hreflangLinks(url: URL): { lang: Lang; href: string }[] {
-  const base = url.origin + url.pathname;
-  return (Object.keys(LANGUAGES) as Lang[]).map(l => ({
-    lang: l,
-    href: l === DEFAULT_LANG ? base : `${base}?hl=${l}`,
-  }));
+  const origin = url.origin;
+  const cleanPath = stripLangPrefix(url.pathname);
+
+  return (Object.keys(LANGUAGES) as Lang[]).map(l => {
+    const pathSeg = LANG_TO_PATH[l];
+    const href = pathSeg
+      ? `${origin}/${pathSeg}${cleanPath === "/" ? "" : cleanPath}`
+      : `${origin}${cleanPath}`;
+    return { lang: l, href };
+  });
 }
 
-// Alias kept for backwards-compat with existing pages
+// 向后兼容别名
 export { hreflangLinks as buildAlternates };
 
 /**
- * Returns a bound translator function for the given language.
- * Usage in Astro frontmatter:
- *   const t = useTranslations(lang);
- *   t("nav.home") // → "首页" | "Home" | "Inicio" …
+ * 返回绑定了指定语言的翻译函数。
+ * 用法：const t = useTranslations(lang);  t("nav.home") → "首页" | "Home" …
  */
 export function useTranslations(lang: Lang) {
   return function t(key: string): string {
     return UI[lang]?.[key] ?? UI[DEFAULT_LANG]?.[key] ?? key;
   };
 }
-

@@ -1,4 +1,6 @@
 ---
+// src/layouts/PostDetails.astro
+// 文章详情页 — UI 语言由文章 frontmatter 的 lang 字段驱动
 import { render, type CollectionEntry } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -7,20 +9,21 @@ import Tag from "@/components/Tag.astro";
 import Datetime from "@/components/Datetime.astro";
 import EditPost from "@/components/EditPost.astro";
 import ShareLinks from "@/components/ShareLinks.astro";
-import BackButton from "@/components/BackButton.astro";
 import BackToTopButton from "@/components/BackToTopButton.astro";
 import Card from "@/components/Card.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
 import { getPath } from "@/utils/getPath";
 import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
+import {
+  DEFAULT_LANG, useTranslations,
+  LANG_TO_PATH, hreflangLinks,
+  type Lang,
+} from "@/i18n/ui";
 import { getTranslations } from "@/utils/getTranslations";
 import TranslationLinks from "@/components/TranslationLinks.astro";
-
-const translations = await getTranslations(post, posts);
-// 在文章标题下面：
-<TranslationLinks translations={translations} />
 
 type Props = {
   post: CollectionEntry<"blog">;
@@ -29,27 +32,31 @@ type Props = {
 
 const { post, posts } = Astro.props;
 
+// 文章语言
+const postLang = ((post.data as any).lang as Lang) ?? DEFAULT_LANG;
+const t = useTranslations(postLang);
+
+// 语言路径前缀，如 "" | "en" | "zh-tw"
+const langSeg = LANG_TO_PATH[postLang];
+const homeHref  = langSeg ? `/${langSeg}/`        : "/";
+const postsHref = langSeg ? `/${langSeg}/posts/`  : "/posts/";
+
+const translations = await getTranslations(post, posts);
+const alternates = hreflangLinks(Astro.url);
+
 const {
-  title,
-  author,
-  description,
-  ogImage: initOgImage,
-  canonicalURL,
-  pubDatetime,
-  modDatetime,
-  timezone,
-  tags,
-  hideEditPost,
+  title, author, description,
+  ogImage: initOgImage, canonicalURL,
+  pubDatetime, modDatetime, timezone,
+  tags, hideEditPost,
 } = post.data;
 
 const { Content } = await render(post);
 
+// OG image
 let ogImageUrl: string | undefined;
-if (typeof initOgImage === "string") {
-  ogImageUrl = initOgImage;
-} else if ((initOgImage as any)?.src) {
-  ogImageUrl = (initOgImage as any).src;
-}
+if (typeof initOgImage === "string") ogImageUrl = initOgImage;
+else if ((initOgImage as any)?.src) ogImageUrl = (initOgImage as any).src;
 if (!ogImageUrl && SITE.dynamicOgImage) {
   ogImageUrl = `${getPath(post.id, post.filePath)}/index.png`;
 }
@@ -57,388 +64,367 @@ const ogImage = ogImageUrl ? new URL(ogImageUrl, Astro.url.origin).href : undefi
 
 const layoutProps = {
   title: `${title} | ${SITE.title}`,
-  author,
-  description,
-  pubDatetime,
-  modDatetime,
-  canonicalURL,
-  ogImage,
+  author, description, pubDatetime, modDatetime, canonicalURL, ogImage,
   scrollSmooth: true,
 };
 
-// Prev / Next
-const allPosts = posts.map(({ data: { title }, id, filePath }) => ({ id, title, filePath }));
-const currentPostIndex = allPosts.findIndex(a => a.id === post.id);
-const prevPost = currentPostIndex !== 0 ? allPosts[currentPostIndex - 1] : null;
-const nextPost = currentPostIndex !== allPosts.length ? allPosts[currentPostIndex + 1] : null;
+// 同语言文章列表（Prev/Next/Related/Recent 都只在同语言范围内）
+const sameLangPosts = posts.filter(p => {
+  const pl = (p.data as any).lang as string | undefined;
+  if (postLang === DEFAULT_LANG) return !pl || pl === DEFAULT_LANG;
+  return pl === postLang;
+});
 
-// Related posts (same tag)
-const relatedPosts = posts
+const allSorted = sameLangPosts.map(({ data: { title }, id, filePath }) => ({
+  id, title, filePath,
+}));
+const curIdx = allSorted.findIndex(a => a.id === post.id);
+const prevPost = curIdx > 0 ? allSorted[curIdx - 1] : null;
+const nextPost = curIdx < allSorted.length - 1 ? allSorted[curIdx + 1] : null;
+
+const relatedPosts = sameLangPosts
   .filter(p => p.id !== post.id && p.data.tags?.some(t => tags?.includes(t)))
   .slice(0, 3);
 
-// GEO: Article structured data
+const recentPosts = sameLangPosts.filter(p => p.id !== post.id).slice(0, 5);
+const authorCount = sameLangPosts.filter(p => p.data.author === author).length;
+
 const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": title,
-  "description": description,
-  "image": ogImage,
-  "datePublished": pubDatetime?.toISOString(),
-  "dateModified": modDatetime?.toISOString() ?? pubDatetime?.toISOString(),
-  "author": {
-    "@type": "Person",
-    "name": author ?? SITE.author,
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": SITE.title,
-    "url": SITE.website,
-  },
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": canonicalURL ?? `${SITE.website}${getPath(post.id, post.filePath)}`,
-  },
-  "keywords": tags?.join(", "),
-  "inLanguage": "zh-CN",
-  "about": tags?.map(t => ({
-    "@type": "Thing",
-    "name": t,
-  })),
-};
-
-// BreadcrumbList schema
-const breadcrumbSchema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "首页", "item": SITE.website },
-    { "@type": "ListItem", "position": 2, "name": "文章", "item": `${SITE.website}posts` },
-    { "@type": "ListItem", "position": 3, "name": title, "item": `${SITE.website}${getPath(post.id, post.filePath)}` },
-  ],
+  headline: title, description, image: ogImage,
+  datePublished: pubDatetime?.toISOString(),
+  dateModified: modDatetime?.toISOString() ?? pubDatetime?.toISOString(),
+  author: { "@type": "Person", name: author ?? SITE.author },
+  publisher: { "@type": "Organization", name: SITE.title, url: SITE.website },
+  keywords: tags?.join(", "),
+  inLanguage: postLang,
 };
 ---
 
 <Layout {...layoutProps}>
-  <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} slot="head" />
-  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} slot="head" />
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+    {alternates.map(a => (
+      <link rel="alternate" hreflang={a.lang.toLowerCase()} href={a.href} />
+    ))}
+  </Fragment>
 
   <Header />
-  <BackButton />
 
-  <div class="app-layout">
-    <div class="py-4 lg:grid lg:grid-cols-[1fr_300px] lg:gap-8 lg:items-start">
+  <div class="site-outer">
 
-      <!-- ===== Main Article ===== -->
-      <main
-        id="main-content"
-        class:list={["pb-12", { "mt-6": !SITE.showBackButton }]}
-        data-pagefind-body
-        itemscope
-        itemtype="https://schema.org/Article"
-      >
+    <!-- 左侧导航高亮当前文章语言 -->
+    <LeftSidebar currentLang={postLang} />
 
-        <!-- Article header -->
-        <div
-          class="mb-6 pb-6 rounded-xl overflow-hidden"
-          style="background:var(--background-card);border:1px solid var(--border);"
-        >
-          <!-- Hero image -->
-          {ogImage && (
-            <div class="aspect-video overflow-hidden">
-              <img
-                src={ogImage}
-                alt={title}
-                class="w-full h-full object-cover"
-                loading="eager"
-                fetchpriority="high"
-                itemprop="image"
-              />
+    <!-- 主文章区 -->
+    <main id="main-content" class="main-col" data-pagefind-body
+      itemscope itemtype="https://schema.org/Article">
+
+      <!-- 阅读进度条 -->
+      <div id="read-progress" aria-hidden="true"
+        style="position:fixed;top:0;left:0;z-index:200;height:2px;width:0;background:var(--accent);transition:width 0.1s linear;pointer-events:none;"></div>
+
+      <!-- 返回链接（语言感知） -->
+      <div style="padding:12px 16px 0;">
+        <a href={homeHref}
+          style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+          onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg-muted)'">
+          <IconChevronLeft style="width:14px;height:14px;" />
+          {t("nav.home")}
+        </a>
+      </div>
+
+      <!-- 文章卡片 -->
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:10px 16px 14px;">
+
+        {ogImage && (
+          <div style="aspect-ratio:16/9;overflow:hidden;background:var(--bg-elevated);">
+            <img src={ogImage} alt={title} loading="eager" fetchpriority="high" itemprop="image"
+              style="width:100%;height:100%;object-fit:cover;display:block;" />
+          </div>
+        )}
+
+        <!-- 标题区 -->
+        <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border-subtle);">
+
+          {tags && tags.length > 0 && (
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+              {tags.map(tag => (
+                <a href={`/tags/${slugifyStr(tag)}`} class="ctag" style="text-decoration:none;">{tag}</a>
+              ))}
             </div>
           )}
 
-          <div class="px-5 pt-5 pb-2">
-            <!-- Tags -->
-            {tags && tags.length > 0 && (
-              <div class="flex flex-wrap gap-2 mb-3">
-                {tags.map(tag => (
-                  <a
-                    href={`/tags/${slugifyStr(tag)}`}
-                    class="ctag hover:opacity-80 transition-opacity focus-outline"
-                  >
-                    {tag}
-                  </a>
-                ))}
-              </div>
-            )}
+          <h1
+            transition:name={slugifyStr(title.replaceAll(".", "-"))}
+            itemprop="name"
+            style="font-size:clamp(18px,2.5vw,26px);font-weight:700;color:var(--fg);line-height:1.4;margin-bottom:10px;"
+          >
+            {title}
+          </h1>
 
-            <!-- Title -->
-            <h1
-              transition:name={slugifyStr(title.replaceAll(".", "-"))}
-              class="text-xl sm:text-2xl md:text-3xl font-bold leading-tight mb-3"
-              style="color:var(--foreground);"
-              itemprop="name"
-            >
-              {title}
-            </h1>
+          {translations.length > 1 && <TranslationLinks translations={translations} />}
 
-            <!-- Description -->
-            {description && (
-              <p
-                class="text-sm leading-relaxed mb-4"
-                style="color:var(--foreground-muted);"
-                itemprop="description"
-              >
-                {description}
-              </p>
-            )}
+          {description && (
+            <p itemprop="description"
+              style="font-size:14px;color:var(--fg-muted);line-height:1.7;margin-bottom:14px;">
+              {description}
+            </p>
+          )}
 
-            <!-- Meta row -->
-            <div
-              class="flex flex-wrap items-center gap-3 pt-3 border-t text-xs"
-              style="border-color:var(--border);color:var(--foreground-muted);"
-            >
-              <span class="flex items-center gap-1" itemprop="author" itemscope itemtype="https://schema.org/Person">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full text-background text-[9px] font-bold" style="background:var(--accent);">
-                  {(author ?? SITE.author).slice(0, 1).toUpperCase()}
-                </span>
-                <span itemprop="name">{author ?? SITE.author}</span>
+          <!-- Meta：作者 + 时间 + 编辑 -->
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--border-subtle);font-size:12.5px;color:var(--fg-muted);">
+            <span style="display:flex;align-items:center;gap:6px;"
+              itemprop="author" itemscope itemtype="https://schema.org/Person">
+              <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                {(author ?? SITE.author).slice(0, 1).toUpperCase()}
               </span>
-              <Datetime {pubDatetime} {modDatetime} {timezone} size="sm" />
-              <span class="ml-auto flex items-center gap-2">
-                <EditPost {hideEditPost} {post} class="text-xs opacity-60 hover:opacity-100" />
-              </span>
+              <span itemprop="name">{author ?? SITE.author}</span>
+            </span>
+            <Datetime {pubDatetime} {modDatetime} {timezone} size="sm" />
+            <div style="margin-left:auto;">
+              <EditPost {hideEditPost} {post} class="text-xs opacity-60 hover:opacity-100" />
             </div>
           </div>
         </div>
 
-        <!-- Article body -->
-        <article
-          id="article"
-          class="app-prose mt-0 w-full max-w-none prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg) rounded-xl p-5 sm:p-6"
-          style="background:var(--background-card);border:1px solid var(--border);"
-          itemprop="articleBody"
-        >
+        <!-- 正文 -->
+        <article id="article" class="app-prose" itemprop="articleBody"
+          style="padding:24px;max-width:none;">
           <Content />
         </article>
 
-        <hr class="my-8 border-dashed" style="border-color:var(--border);" />
+        <hr style="border:none;border-top:1px dashed var(--border);margin:0 24px;" />
 
-        <!-- Tags & Share -->
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <ul class="flex flex-wrap gap-2" aria-label="文章标签">
-            {tags?.map(tag => (
-              <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />
-            ))}
+        <!-- 标签 + 分享 -->
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 24px;">
+          <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px;">
+            {tags?.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
           </ul>
           <ShareLinks />
         </div>
+      </div>
 
-        <!-- Back to top -->
-        <BackToTopButton />
+      <BackToTopButton />
 
-        <!-- Prev/Next navigation -->
-        <nav
-          class="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl p-4"
-          style="background:var(--background-card);border:1px solid var(--border);"
-          aria-label="文章前后导航"
-        >
-          {prevPost && (
-            <a
-              href={getPath(prevPost.id, prevPost.filePath)}
-              class="flex items-start gap-2 group hover:text-accent focus-outline rounded-lg p-2 -m-2 transition-colors"
-              rel="prev"
-            >
-              <IconChevronLeft class="shrink-0 mt-0.5 w-4 h-4 rtl:rotate-180" />
-              <div>
-                <div class="text-xs mb-1" style="color:var(--foreground-muted);">上一篇</div>
-                <div class="text-sm font-medium leading-snug group-hover:text-accent transition-colors line-clamp-2">
-                  {prevPost.title}
-                </div>
+      <!-- 上一篇 / 下一篇 -->
+      <nav style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;"
+        aria-label={`${t("post.prev")} / ${t("post.next")}`}>
+        {prevPost ? (
+          <a href={getPath(prevPost.id, prevPost.filePath)} rel="prev"
+            style="display:flex;align-items:flex-start;gap:8px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--fg);transition:border-color 0.12s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <IconChevronLeft style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--fg-muted);" />
+            <div>
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:3px;">{t("post.prev")}</div>
+              <div style="font-size:13px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                {prevPost.title}
               </div>
-            </a>
-          )}
-          {nextPost && (
-            <a
-              href={getPath(nextPost.id, nextPost.filePath)}
-              class="flex items-start gap-2 group hover:text-accent sm:col-start-2 sm:flex-row-reverse sm:text-right focus-outline rounded-lg p-2 -m-2 transition-colors"
-              rel="next"
-            >
-              <IconChevronRight class="shrink-0 mt-0.5 w-4 h-4 rtl:rotate-180" />
-              <div>
-                <div class="text-xs mb-1" style="color:var(--foreground-muted);">下一篇</div>
-                <div class="text-sm font-medium leading-snug group-hover:text-accent transition-colors line-clamp-2">
-                  {nextPost.title}
-                </div>
-              </div>
-            </a>
-          )}
-        </nav>
+            </div>
+          </a>
+        ) : <div />}
 
-        <!-- Related posts -->
-        {relatedPosts.length > 0 && (
-          <section class="mt-8" aria-label="相关文章">
-            <div class="sec-hd mb-4">
-              <span class="text-sm font-bold text-foreground">相关文章</span>
+        {nextPost && (
+          <a href={getPath(nextPost.id, nextPost.filePath)} rel="next"
+            style="display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--fg);text-align:right;transition:border-color 0.12s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div>
+              <div style="font-size:11px;color:var(--fg-muted);margin-bottom:3px;">{t("post.next")}</div>
+              <div style="font-size:13px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                {nextPost.title}
+              </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {relatedPosts.map(p => (
-                <Card {...p} size="medium" variant="h3" />
-              ))}
-            </div>
-          </section>
+            <IconChevronRight style="width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--fg-muted);" />
+          </a>
         )}
-      </main>
+      </nav>
 
-      <!-- ===== Sidebar (desktop only) ===== -->
-      <aside class="hidden lg:block sticky top-[120px] space-y-5" aria-label="侧边栏">
-
-        <!-- Table of contents (rendered via JS) -->
-        <div
-          id="toc-sidebar"
-          class="rounded-xl p-4"
-          style="background:var(--background-card);border:1px solid var(--border);"
-        >
-          <div class="sec-hd mb-3">
-            <span class="text-sm font-bold text-foreground">目录</span>
+      <!-- 相关文章 -->
+      {relatedPosts.length > 0 && (
+        <section style="margin:0 16px 16px;">
+          <div class="rsidebar-head" style="margin-bottom:12px;">{t("section.related")}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            {relatedPosts.map(p => <Card {...p} size="medium" variant="h3" />)}
           </div>
-          <nav id="toc-nav" aria-label="文章目录" class="text-xs space-y-1">
-            <!-- Filled by JS -->
-            <p style="color:var(--foreground-muted);" class="text-xs">加载中...</p>
-          </nav>
+        </section>
+      )}
+
+    </main>
+
+    <!-- 右侧边栏 -->
+    <aside class="rsidebar" style="padding-top:12px;" aria-label="文章侧边栏">
+
+      <!-- 作者卡片 -->
+      <div class="rsidebar-section">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            {(author ?? SITE.author).slice(0, 1).toUpperCase()}
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:3px;">
+              {author ?? SITE.author}
+            </div>
+            <div style="font-size:12px;color:var(--fg-muted);">
+              {t("post.author")} · {authorCount} 篇
+            </div>
+          </div>
         </div>
+      </div>
 
-        <!-- Share block -->
-        <div
-          class="rounded-xl p-4"
-          style="background:var(--background-card);border:1px solid var(--border);"
-        >
-          <div class="sec-hd mb-3">
-            <span class="text-sm font-bold text-foreground">分享本文</span>
+      <!-- 目录 -->
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t("post.toc")}</div>
+        <nav id="toc-nav" style="margin-top:8px;display:flex;flex-direction:column;gap:2px;"
+          aria-label="文章目录">
+          <p style="font-size:12px;color:var(--fg-muted);">加载中...</p>
+        </nav>
+      </div>
+
+      <!-- 最近内容 -->
+      <div class="rsidebar-section">
+        <div class="rsidebar-head">{t("section.latest")}</div>
+        {recentPosts.map(p => (
+          <div style="padding:8px 0;border-bottom:1px solid var(--border-subtle);">
+            <a href={getPath(p.id, p.filePath)}
+              style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;font-weight:500;color:var(--fg);text-decoration:none;line-height:1.5;margin-bottom:3px;transition:color 0.12s;display:block;"
+              onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'">
+              {p.data.title}
+            </a>
+            <Datetime pubDatetime={p.data.pubDatetime} modDatetime={p.data.modDatetime}
+              class="qnews-time" />
           </div>
-          <ShareLinks />
+        ))}
+        <!-- 查看更多按钮（语言感知链接） -->
+        <a href={postsHref}
+          style="display:block;margin-top:12px;text-align:center;background:var(--accent);color:#fff;border-radius:4px;padding:9px;font-size:13px;font-weight:600;text-decoration:none;transition:opacity 0.12s;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          {t("section.more")}
+        </a>
+      </div>
+
+      <!-- 下一篇预览 -->
+      {nextPost && (
+        <div class="rsidebar-section">
+          <div class="rsidebar-head">{t("post.next")}</div>
+          <a href={getPath(nextPost.id, nextPost.filePath)} rel="next"
+            style="display:block;margin-top:8px;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:5px;text-decoration:none;transition:border-color 0.12s;"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="font-size:11px;color:var(--fg-muted);margin-bottom:5px;">{t("post.next")}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--fg);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+              {nextPost.title}
+            </div>
+          </a>
         </div>
+      )}
 
-        <!-- Quick nav -->
-        <div
-          class="rounded-xl p-4 text-xs"
-          style="background:var(--background-card);border:1px solid var(--border);"
-        >
-          <div class="sec-hd mb-3">
-            <span class="text-sm font-bold text-foreground">相关专题</span>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            {tags?.map(tag => (
-              <a
-                href={`/tags/${slugifyStr(tag)}`}
-                class="ctag hover:opacity-80 focus-outline"
-              >
-                {tag}
-              </a>
+      <!-- 相关标签 -->
+      {tags && tags.length > 0 && (
+        <div class="rsidebar-section">
+          <div class="rsidebar-head">{t("section.tags")}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+            {tags.map(tag => (
+              <a href={`/tags/${slugifyStr(tag)}`} class="ctag" style="text-decoration:none;">{tag}</a>
             ))}
           </div>
         </div>
-      </aside>
-    </div>
+      )}
+
+    </aside>
+
   </div>
 
   <Footer />
 </Layout>
 
 <script is:inline data-astro-rerun>
-  /* ===== Reading progress bar ===== */
-  (function() {
-    const bar = document.createElement("div");
-    bar.id = "read-progress";
-    bar.style.cssText = "position:fixed;top:0;left:0;z-index:100;height:2px;width:0;background:var(--accent);transition:width 0.1s linear;pointer-events:none;";
-    document.body.appendChild(bar);
-
-    document.addEventListener("scroll", () => {
-      const el = document.documentElement;
-      const scrolled = (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100;
-      bar.style.width = Math.min(scrolled, 100) + "%";
-    });
-  })();
-
-  /* ===== Table of contents generator ===== */
-  (function() {
-    const tocNav = document.getElementById("toc-nav");
-    if (!tocNav) return;
-
-    const headings = Array.from(document.querySelectorAll("#article h2, #article h3"));
-    if (headings.length === 0) {
-      tocNav.innerHTML = '<p style="color:var(--foreground-muted);" class="text-xs">本文暂无目录</p>';
-      return;
+  (function () {
+    /* 阅读进度条 */
+    const bar = document.getElementById("read-progress");
+    if (bar) {
+      document.addEventListener("scroll", () => {
+        const el = document.documentElement;
+        bar.style.width = Math.min(
+          (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100, 100
+        ) + "%";
+      }, { passive: true });
     }
 
-    tocNav.innerHTML = "";
-    headings.forEach((h, i) => {
-      if (!h.id) h.id = `heading-${i}`;
-      const link = document.createElement("a");
-      link.href = `#${h.id}`;
-      link.textContent = h.textContent?.replace(/#$/, "") ?? "";
-      link.className = [
-        "block py-0.5 transition-colors hover:text-accent focus-outline rounded",
-        h.tagName === "H3" ? "pl-3 text-[11px] opacity-80" : "font-medium",
-      ].join(" ");
-      link.style.color = "var(--foreground-muted)";
-      link.addEventListener("click", e => {
-        e.preventDefault();
-        document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      tocNav.appendChild(link);
-    });
-
-    // Highlight active heading on scroll
-    const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          const link = tocNav.querySelector(`a[href="#${entry.target.id}"]`) as HTMLAnchorElement;
-          if (!link) return;
-          if (entry.isIntersecting) {
-            tocNav.querySelectorAll("a").forEach(a => { (a as HTMLAnchorElement).style.color = "var(--foreground-muted)"; });
-            link.style.color = "var(--accent)";
-          }
+    /* 目录生成 */
+    const tocNav = document.getElementById("toc-nav");
+    if (tocNav) {
+      const headings = Array.from(document.querySelectorAll("#article h2, #article h3"));
+      if (!headings.length) {
+        tocNav.innerHTML = '<p style="font-size:12px;color:var(--fg-muted);">—</p>';
+      } else {
+        tocNav.innerHTML = "";
+        headings.forEach((h, i) => {
+          if (!h.id) h.id = "h-" + i;
+          const a = document.createElement("a");
+          a.href = "#" + h.id;
+          a.textContent = h.textContent?.replace(/#$/, "") ?? "";
+          const isH3 = h.tagName === "H3";
+          a.style.cssText = [
+            "display:block;line-height:1.4;text-decoration:none;transition:color 0.12s,border-color 0.12s;",
+            "border-left:2px solid transparent;color:var(--fg-muted);",
+            isH3
+              ? "padding:3px 0 3px 16px;font-size:11.5px;opacity:0.8;"
+              : "padding:4px 0 4px 8px;font-size:12.5px;font-weight:500;",
+          ].join("");
+          a.addEventListener("click", e => {
+            e.preventDefault();
+            document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          tocNav.appendChild(a);
         });
-      },
-      { rootMargin: "-20% 0px -70% 0px" }
-    );
 
-    headings.forEach(h => observer.observe(h));
-  })();
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            const link = tocNav.querySelector(`a[href="#${entry.target.id}"]`);
+            if (link && entry.isIntersecting) {
+              tocNav.querySelectorAll("a").forEach(a => {
+                a.style.color = "var(--fg-muted)";
+                a.style.borderLeftColor = "transparent";
+              });
+              link.style.color = "var(--accent)";
+              link.style.borderLeftColor = "var(--accent)";
+            }
+          });
+        }, { rootMargin: "-10% 0px -70% 0px" });
+        headings.forEach(h => obs.observe(h));
+      }
+    }
 
-  /* ===== Heading anchor links ===== */
-  (function() {
-    const headings = Array.from(document.querySelectorAll("#article h2, #article h3, #article h4"));
-    headings.forEach(h => {
-      h.classList.add("group");
+    /* 标题锚点链接 */
+    document.querySelectorAll("#article h2, #article h3, #article h4").forEach(h => {
+      if (!h.id) return;
       const a = document.createElement("a");
-      a.className = "ml-2 opacity-0 group-hover:opacity-60 no-underline transition-opacity text-accent";
       a.href = "#" + h.id;
-      a.innerHTML = "#";
+      a.innerHTML = " #";
       a.setAttribute("aria-hidden", "true");
+      a.style.cssText = "opacity:0;color:var(--accent);text-decoration:none;font-size:0.75em;transition:opacity 0.15s;";
       h.appendChild(a);
+      h.addEventListener("mouseenter", () => { a.style.opacity = "0.6"; });
+      h.addEventListener("mouseleave", () => { a.style.opacity = "0"; });
     });
-  })();
 
-  /* ===== Copy code button ===== */
-  (function() {
+    /* 代码块复制按钮 */
     document.querySelectorAll("pre").forEach(pre => {
+      pre.style.position = "relative";
       const btn = document.createElement("button");
       btn.textContent = "复制";
-      btn.className = "copy-code absolute end-3 -top-3 rounded px-2 py-0.5 text-xs font-medium border transition-colors";
-      btn.style.cssText = "background:var(--background-elevated);border-color:var(--border);color:var(--foreground-muted);";
-      pre.style.position = "relative";
-      pre.appendChild(btn);
+      btn.style.cssText = "position:absolute;top:8px;right:8px;padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--fg-muted);cursor:pointer;transition:color 0.12s;";
       btn.addEventListener("click", async () => {
-        const code = pre.querySelector("code")?.innerText ?? "";
-        await navigator.clipboard.writeText(code);
-        btn.textContent = "已复制!";
-        setTimeout(() => { btn.textContent = "复制"; }, 1500);
+        await navigator.clipboard.writeText(pre.querySelector("code")?.innerText ?? "").catch(() => {});
+        btn.textContent = "✓";
+        btn.style.color = "var(--accent-green)";
+        setTimeout(() => { btn.textContent = "复制"; btn.style.color = "var(--fg-muted)"; }, 1500);
       });
+      pre.appendChild(btn);
     });
   })();
 
-  /* Scroll to top on page transition */
-  document.addEventListener("astro:after-swap", () => window.scrollTo({ top: 0, behavior: "instant" }));
+  document.addEventListener("astro:after-swap", () =>
+    window.scrollTo({ top: 0, behavior: "instant" })
+  );
 </script>

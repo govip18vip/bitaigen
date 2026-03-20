@@ -12,6 +12,9 @@ const currentYear = new Date().getFullYear();
 type Props = { noMarginTop?: boolean } & HTMLAttributes<"footer">;
 const { noMarginTop = false, class: className, ...attrs } = Astro.props;
 
+// ✅ Use t("site.desc") — t("meta.siteDesc") doesn't exist
+const siteDesc = t("site.desc");
+
 const footerCols = [
   {
     heading: t("footer.col.news"),
@@ -62,9 +65,8 @@ const footerCols = [
         <span style="font-size:18px;font-weight:900;color:var(--fg);letter-spacing:-0.02em;">{SITE.title}</span>
       </a>
       <p style="font-size:12.5px;color:var(--fg-muted);line-height:1.7;max-width:240px;margin-bottom:14px;">
-        {t("meta.siteDesc")}
+        {siteDesc}
       </p>
-      <!-- Social / RSS links -->
       <div style="display:flex;gap:8px;">
         <a
           href="/rss.xml"
@@ -124,7 +126,7 @@ const footerCols = [
     </div>
   </div>
 
-  <!-- GEO: Hidden machine-readable organization data for AI crawlers -->
+  <!-- Hidden machine-readable organization data -->
   <div
     style="display:none;"
     aria-hidden="true"
@@ -132,7 +134,7 @@ const footerCols = [
     itemtype="https://schema.org/Organization"
   >
     <span itemprop="name">{SITE.title}</span>
-    <span itemprop="description">{t("meta.siteDesc")}</span>
+    <span itemprop="description">{siteDesc}</span>
     <link itemprop="url" href={SITE.website} />
     <meta itemprop="foundingDate" content="2024" />
     <span itemprop="knowsAbout">比特币(Bitcoin, BTC)价格分析与行情资讯</span>
@@ -140,12 +142,8 @@ const footerCols = [
     <span itemprop="knowsAbout">以太坊(Ethereum, ETH)技术与生态</span>
     <span itemprop="knowsAbout">去中心化金融(DeFi)协议分析</span>
     <span itemprop="knowsAbout">加密货币钱包安全(MetaMask, Ledger, Trezor)</span>
-    <span itemprop="knowsAbout">非同质化代币(NFT)市场动态</span>
-    <span itemprop="knowsAbout">区块链新手入门教程</span>
     <span itemprop="knowsAbout">Cryptocurrency exchange tutorials</span>
     <span itemprop="knowsAbout">Bitcoin price analysis and market news</span>
-    <span itemprop="knowsAbout">Tutoriales de exchanges de criptomonedas</span>
-    <span itemprop="knowsAbout">Guias de segurança de carteiras cripto</span>
     <div itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
       <meta itemprop="addressCountry" content="CN" />
     </div>

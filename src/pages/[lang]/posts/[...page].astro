@@ -1,6 +1,6 @@
 ---
 // src/pages/[lang]/posts/[...page].astro
-// 非默认语言文章列表：/en/posts/  /zh-tw/posts/  /es/posts/  /pt/posts/
+// 生成非默认语言的文章列表：/en/posts/  /zh-tw/posts/  等
 import type { GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
@@ -24,26 +24,19 @@ export const getStaticPaths = (async ({ paginate }) => {
 
   return nonDefaultLangs.flatMap(lang => {
     const langPosts = filterPostsByLang(allPosts, lang);
-    // params.lang 必须是 URL 路径段（如 "en"、"zh-tw"），不是内部 key
     return paginate(langPosts, {
-      params: { lang: LANG_TO_PATH[lang] },
+      params: { lang },
       pageSize: SITE.postPerPage,
     });
   });
 }) satisfies GetStaticPaths;
 
-const { lang: langPath } = Astro.params;
-
-// 路径段 → 内部 Lang key
-const lang = (
-  Object.entries(LANG_TO_PATH).find(([, v]) => v === langPath)?.[0] ?? DEFAULT_LANG
-) as Lang;
-
+const { lang: langParam } = Astro.params;
+const lang = langParam as Lang;
 const t = useTranslations(lang);
 const { page } = Astro.props;
 
-const langSeg = LANG_TO_PATH[lang];
-const homeHref = `/${langSeg}/`;
+const postsBase = `/${LANG_TO_PATH[lang]}/posts`;
 ---
 
 <Layout title={`${t("section.all")} | ${t("site.name")}`} description={t("site.desc")}>
@@ -55,30 +48,35 @@ const homeHref = `/${langSeg}/`;
     <div class="main-col" style="padding-bottom:40px;">
       <!-- Breadcrumb -->
       <div style="padding:14px 16px 0;font-size:13px;color:var(--fg-muted);">
-        <a href={homeHref}
-          style="color:var(--fg-muted);text-decoration:none;transition:color 0.12s;"
+        <a href={`/${LANG_TO_PATH[lang]}/`}
+          style="color:var(--fg-muted);text-decoration:none;"
           onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg-muted)'">
           {t("nav.home")}
         </a>
-        <span style="margin:0 6px;opacity:0.5;">›</span>
+        <span style="margin:0 6px;">›</span>
         <span style="color:var(--fg);">{t("section.all")}</span>
       </div>
 
-      <div style="padding:10px 16px 0;">
-        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">{t("section.all")}</h1>
-        <p style="font-size:13px;color:var(--fg-muted);">{t("site.desc.short")}</p>
+      <div style="padding:12px 16px 0;">
+        <h1 style="font-size:20px;font-weight:700;color:var(--fg);margin-bottom:4px;">
+          {t("section.all")}
+        </h1>
+        <p style="font-size:13px;color:var(--fg-muted);">
+          {t("site.desc.short")}
+        </p>
       </div>
 
-      <div style="margin-top:12px;">
+      <!-- Articles -->
+      <div style="margin-top:14px;">
         {page.data.length > 0 ? (
           <div class="alist">
             {page.data.map(data => <Card {...data} size="list" variant="h3" />)}
           </div>
         ) : (
           <div style="padding:60px 16px;text-align:center;color:var(--fg-muted);">
-            <p style="font-size:15px;margin-bottom:8px;">📝 No articles yet</p>
-            <p style="font-size:12px;opacity:0.7;">
-              Add .md files to <code>src/data/blog/{langSeg}/</code>
+            <p style="font-size:16px;margin-bottom:8px;">📝 No articles yet</p>
+            <p style="font-size:13px;opacity:0.7;">
+              Add .md files to <code>src/data/blog/{LANG_TO_PATH[lang]}/</code>
             </p>
           </div>
         )}
@@ -89,9 +87,9 @@ const homeHref = `/${langSeg}/`;
 
     <aside class="rsidebar" style="padding:16px 0;">
       <div class="rsidebar-section">
-        <div class="rsidebar-head">{t("section.tags")}</div>
+        <div class="rsidebar-head">{t("section.topic")}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-          {["BTC","ETH","DeFi","NFT","Wallet","Tutorial"].map(tag => (
+          {["BTC", "ETH", "DeFi", "NFT", "Wallet", "Tutorial"].map(tag => (
             <a href={`/tags/${tag.toLowerCase()}`} class="ctag" style="text-decoration:none;">{tag}</a>
           ))}
         </div>
