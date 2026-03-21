@@ -1,9 +1,4 @@
 // src/content.config.ts
-// ─────────────────────────────────────────────────────────────
-// Updated schema: adds `lang` and `translationKey` fields
-// needed for the multi-language system.
-// ─────────────────────────────────────────────────────────────
-
 import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 import { SITE } from "@/config";
@@ -29,17 +24,35 @@ const blog = defineCollection({
       timezone: z.string().optional(),
 
       // ── Multi-language fields ──────────────────────────────
-      // lang: ISO language code of this specific post
-      // e.g. "zh-CN" | "zh-TW" | "en" | "es" | "pt"
       lang: z
         .enum(Object.keys(LANGUAGES) as [string, ...string[]])
         .optional(),
-
-      // translationKey: shared key across all language versions
-      // of the same article. Used to link translations together.
-      // Example: all 5 language versions of the BTC guide share
-      //   translationKey: "bitcoin-btc-complete-guide"
       translationKey: z.string().optional(),
+
+      // ── SEO / Schema fields ────────────────────────────────
+      // type 决定注入哪种 Schema：
+      //   "article"  → Article schema（默认，适用普通资讯）
+      //   "howto"    → HowTo schema（适用教程类，展示步骤富片段）
+      //   "guide"    → Article schema + FAQPage（适用深度指南）
+      //   "news"     → Article + SpecialAnnouncement（适用快讯）
+      type: z
+        .enum(["article", "howto", "guide", "news"])
+        .default("article"),
+
+      // faqs：注入 FAQPage schema，Google"人们还问"富片段
+      // 每篇文章建议 3~8 个问答对
+      // 示例：
+      //   faqs:
+      //     - q: "币安注册需要实名吗？"
+      //       a: "是的，需完成KYC才能使用完整功能。"
+      faqs: z
+        .array(
+          z.object({
+            q: z.string(),
+            a: z.string(),
+          })
+        )
+        .optional(),
     }),
 });
 
