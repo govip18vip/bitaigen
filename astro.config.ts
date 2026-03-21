@@ -7,7 +7,7 @@ import { SITE } from "./src/config";
 import { transformerFileName } from "./src/utils/transformers/fileName.js";
 import {
   transformerNotationDiff,
-  transformerNotationWordHighlight,   // ← 改这里
+  transformerNotationWordHighlight,
   transformerNotationFocus,
 } from "@shikijs/transformers";
 
@@ -18,7 +18,6 @@ export default defineConfig({
     sitemap({
       filter: page => SITE.showArchives || !page.endsWith("/archives"),
 
-      // ✅ Fix: removed unused `isArchive`, cast changefreq as `any`
       serialize(item) {
         const url = item.url;
 
@@ -71,25 +70,24 @@ export default defineConfig({
       ],
     ],
     shikiConfig: {
-      // https://shiki.style/themes
       themes: { light: "min-light", dark: "night-owl" },
       transformers: [
         transformerFileName(),
         transformerNotationDiff(),
-        transformerNotationWordHighlight(), 
+        transformerNotationWordHighlight(),
         transformerNotationFocus(),
       ],
     },
   },
 
-	vite: {
-		plugins: [tailwindcss()],
-		optimizeDeps: {
-		  exclude: ["@resvg/resvg-js"],
-		},
-	  },
+  vite: {
+    plugins: [tailwindcss() as any],
+    optimizeDeps: {
+      exclude: ["@resvg/resvg-js"],
+    },
+  },
 
-	  image: {
-		layout: "constrained",
-	  },
-	});
+  image: {
+    layout: "constrained",
+  },
+});
