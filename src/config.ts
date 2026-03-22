@@ -1,9 +1,9 @@
 export const SITE = {
-  website: "https://your-crypto-domain.com/", // 替换为你的域名
+  website: "https://bitaigen.com/", // 替换为你的域名
   author: "加密研究员",
   profile: "",
   desc: "专业区块链资讯平台，提供比特币行情分析、交易所使用教程、加密钱包安全指南及 DeFi 协议深度解析。",
-  title: "CryptoNews",  // 替换为你的站点名
+  title: "bitaigen",  // 替换为你的站点名
   ogImage: "og-crypto.jpg",
   lightAndDarkMode: true,
   postPerIndex: 9,
