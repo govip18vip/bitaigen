@@ -1,14 +1,18 @@
 // src/pages/robots.txt.ts
 import type { APIRoute } from "astro";
 
-const getRobotsTxt = (sitemapURL: URL) => `
+const getRobotsTxt = (sitemapURL: URL, siteUrl: string) => `
 User-agent: *
 Allow: /
 Crawl-delay: 1
 
 Sitemap: ${sitemapURL.href}
 
-# ── 传统搜索引擎 ──────────────────────────────────────────
+# ── LLMs.txt for AI engines ──────────────────────────────
+# https://llmstxt.org/
+# ${siteUrl}/llms.txt
+
+# ── Traditional search engines ───────────────────────────
 User-agent: Googlebot
 Allow: /
 Crawl-delay: 0
@@ -27,8 +31,11 @@ User-agent: Baiduspider
 Allow: /
 Crawl-delay: 1
 
-# ── AI 搜索引擎爬虫（明确许可，提升 GEO 被引用率）────────
-# OpenAI / ChatGPT
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
+# ── AI search engine crawlers (explicit permission for GEO) ─
 User-agent: GPTBot
 Allow: /
 
@@ -38,48 +45,43 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
-# Perplexity
 User-agent: PerplexityBot
 Allow: /
 
-# Anthropic / Claude
 User-agent: ClaudeBot
 Allow: /
 
 User-agent: anthropic-ai
 Allow: /
 
-# Google AI (Gemini / SGE)
 User-agent: Google-Extended
 Allow: /
 
 User-agent: Googlebot-Extended
 Allow: /
 
-# Apple Intelligence
 User-agent: Applebot
 Allow: /
 
 User-agent: Applebot-Extended
 Allow: /
 
-# Meta AI
 User-agent: FacebookBot
 Allow: /
 
-# Cohere
 User-agent: cohere-ai
 Allow: /
 
-# Diffbot（AI 结构化数据）
 User-agent: Diffbot
 Allow: /
 
-# Common Crawl（LLM 训练数据来源之一）
 User-agent: CCBot
 Allow: /
 
-# ── 明确禁止的恶意爬虫 ───────────────────────────────────
+User-agent: Bytespider
+Allow: /
+
+# ── Blocked malicious crawlers ──────────────────────────
 User-agent: MJ12bot
 Disallow: /
 
@@ -92,7 +94,7 @@ Disallow: /
 User-agent: DotBot
 Disallow: /
 
-# ── 禁止所有爬虫访问的路径 ───────────────────────────────
+# ── Protected paths ─────────────────────────────────────
 User-agent: *
 Disallow: /api/
 Disallow: /_astro/
@@ -101,10 +103,10 @@ Disallow: /404
 
 export const GET: APIRoute = ({ site }) => {
   const sitemapURL = new URL("sitemap-index.xml", site);
-  return new Response(getRobotsTxt(sitemapURL), {
+  const siteUrl = site?.href.replace(/\/$/, "") ?? "https://bitaigen.com";
+  return new Response(getRobotsTxt(sitemapURL, siteUrl), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      // 缓存 1 天，避免频繁重新抓取
       "Cache-Control": "public, max-age=86400",
     },
   });

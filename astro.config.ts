@@ -16,30 +16,38 @@ export default defineConfig({
 
   integrations: [
     sitemap({
-      filter: page => SITE.showArchives || !page.endsWith("/archives"),
+      filter: page =>
+        (SITE.showArchives || !page.endsWith("/archives")) &&
+        !page.includes("/go/") && // Exclude affiliate landing pages from sitemap priorities
+        !page.includes("/404"),
 
       serialize(item) {
         const url = item.url;
 
         let changefreq: any = "monthly";
+        let priority = 0.6;
+
         if (url === SITE.website || url === SITE.website + "/") {
           changefreq = "daily";
-        } else if (
-          url.includes("/posts/") ||
-          url.includes("/tags/")
-        ) {
+          priority = 1.0;
+        } else if (url.includes("/price/")) {
+          changefreq = "hourly";
+          priority = 0.9;
+        } else if (url.includes("/posts/") && !url.match(/\/posts\/\d+\/?$/)) {
           changefreq = "weekly";
+          priority = 0.8;
+        } else if (url.includes("/tags/")) {
+          changefreq = "weekly";
+          priority = 0.7;
+        } else if (url.match(/\/(en|zh-tw|es|pt)\/?$/)) {
+          changefreq = "daily";
+          priority = 0.9;
         }
 
         return {
           ...item,
           changefreq,
-          priority:
-            url === SITE.website || url === SITE.website + "/"
-              ? 1.0
-              : url.includes("/posts/")
-              ? 0.8
-              : 0.6,
+          priority,
           lastmod: new Date(
             item.lastmod ?? Date.now()
           ).toISOString(),

@@ -1,9 +1,9 @@
 export const SITE = {
-  website: "https://bitaigen.com/", // 替换为你的域名
-  author: "加密研究员",
-  profile: "",
-  desc: "专业区块链资讯平台，提供比特币行情分析、交易所使用教程、加密钱包安全指南及 DeFi 协议深度解析。",
-  title: "bitaigen",  // 替换为你的站点名
+  website: "https://bitaigen.com/",
+  author: "Bitaigen",
+  profile: "https://bitaigen.com/about",
+  desc: "Professional blockchain news platform — Bitcoin price analysis, exchange tutorials, crypto wallet security guides, DeFi protocol deep dives. 专业区块链资讯平台。",
+  title: "Bitaigen",
   ogImage: "og-crypto.jpg",
   lightAndDarkMode: true,
   postPerIndex: 9,
@@ -20,4 +20,8 @@ export const SITE = {
   dir: "ltr",
   lang: "zh-CN",
   timezone: "Asia/Shanghai",
+
+  // ── Social / Contact ──────────────────────────────────
+  telegram: "https://t.me/AllenAmbrose",
+  twitter: "https://x.com/tanfyoo",
 } as const;

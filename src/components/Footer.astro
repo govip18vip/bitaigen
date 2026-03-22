@@ -31,8 +31,8 @@ const footerCols = [
       { label: "新手入门", href: "/tags/beginner" },
       { label: "交易所教程", href: "/tags/docs" },
       { label: "钱包安全", href: "/tags/wallet" },
-      { label: "合约交易", href: "/tags/docs" },
-      { label: "空投教程", href: "/tags/docs" },
+      { label: "实时行情", href: "/price" },
+      { label: "BTC 价格", href: "/price/btc" },
     ],
   },
   {
@@ -45,6 +45,14 @@ const footerCols = [
       { label: "关于",     href: "/about" },
     ],
   },
+  {
+    heading: t("footer.col.social"),
+    links: [
+      { label: "Telegram",  href: SITE.telegram, external: true },
+      { label: "X / Twitter", href: SITE.twitter, external: true },
+      { label: "RSS Feed",  href: "/rss.xml", external: true },
+    ],
+  },
 ];
 ---
 
@@ -54,7 +62,6 @@ const footerCols = [
   itemscope
   itemtype="https://schema.org/WPFooter"
 >
-  <!-- Grid container: uses a dedicated class for CSS targeting -->
   <div class="footer-grid">
 
     <!-- Brand column -->
@@ -64,12 +71,21 @@ const footerCols = [
         <span class="footer-brand-text">{SITE.title}</span>
       </a>
       <p class="footer-desc">{siteDesc}</p>
-      <div class="footer-actions">
-        <a href="/rss.xml" target="_blank" rel="noopener noreferrer" class="footer-action-btn">
-          📡 RSS
+
+      <!-- Social buttons -->
+      <div class="footer-social">
+        <a href={SITE.telegram} target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="Telegram" title="Telegram">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+          </svg>
         </a>
-        <a href="/about" class="footer-action-btn">
-          ✉ {t("footer.about")}
+        <a href={SITE.twitter} target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="X / Twitter" title="X / Twitter">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+        </a>
+        <a href="/rss.xml" target="_blank" rel="noopener noreferrer" class="footer-social-btn" aria-label="RSS" title="RSS Feed">
+          📡
         </a>
       </div>
     </div>
@@ -81,7 +97,10 @@ const footerCols = [
         <ul class="footer-col-list">
           {col.links.map(link => (
             <li>
-              <a href={link.href} class="footer-col-link">{link.label}</a>
+              <a href={link.href}
+                class="footer-col-link"
+                {...((link as any).external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              >{link.label}</a>
             </li>
           ))}
         </ul>
@@ -89,11 +108,18 @@ const footerCols = [
     ))}
   </div>
 
+  <!-- Disclaimer -->
+  <div class="footer-disclaimer">
+    <p>{t("footer.disclaimer")}</p>
+  </div>
+
   <!-- Bottom bar -->
   <div class="footer-bottom">
     <div>© {currentYear} {SITE.title}. {t("footer.rights")}.</div>
     <div class="footer-bottom-links">
       <a href="/about">{t("footer.about")}</a>
+      <a href={SITE.telegram} target="_blank" rel="noopener noreferrer">Telegram</a>
+      <a href={SITE.twitter} target="_blank" rel="noopener noreferrer">X</a>
       <a href="/rss.xml" target="_blank" rel="noopener noreferrer">RSS</a>
       <span class="footer-slogan">⚡ {t("footer.slogan")}</span>
     </div>
@@ -105,6 +131,8 @@ const footerCols = [
     <span itemprop="description">{siteDesc}</span>
     <link itemprop="url" href={SITE.website} />
     <meta itemprop="foundingDate" content="2024" />
+    <link itemprop="sameAs" href={SITE.telegram} />
+    <link itemprop="sameAs" href={SITE.twitter} />
   </div>
 </footer>
 
@@ -115,18 +143,16 @@ const footerCols = [
     margin-top: auto;
   }
 
-  /* ── Grid layout ─────────────────────────────────────────── */
   .footer-grid {
     max-width: 1400px;
     margin: 0 auto;
     padding: 36px 24px 0;
     display: grid;
-    grid-template-columns: 1fr repeat(3, 140px);
-    gap: 32px;
+    grid-template-columns: 1.5fr repeat(4, 1fr);
+    gap: 28px;
     align-items: start;
   }
 
-  /* ── Brand ───────────────────────────────────────────────── */
   .footer-brand {
     display: flex;
     align-items: center;
@@ -157,31 +183,33 @@ const footerCols = [
     font-size: 12.5px;
     color: var(--fg-muted);
     line-height: 1.7;
-    max-width: 240px;
+    max-width: 260px;
     margin-bottom: 14px;
   }
-  .footer-actions {
+
+  .footer-social {
     display: flex;
     gap: 8px;
   }
-  .footer-action-btn {
+  .footer-social-btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 6px;
     color: var(--fg-muted);
     text-decoration: none;
-    transition: border-color 0.12s, color 0.12s;
+    font-size: 14px;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
   }
-  .footer-action-btn:hover {
+  .footer-social-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
+    background: var(--tag-orange-bg);
   }
 
-  /* ── Columns ─────────────────────────────────────────────── */
   .footer-col-heading {
     font-size: 11px;
     font-weight: 700;
@@ -206,12 +234,25 @@ const footerCols = [
   }
   .footer-col-link:hover { color: var(--accent); }
 
-  /* ── Bottom bar ──────────────────────────────────────────── */
+  .footer-disclaimer {
+    max-width: 1400px;
+    margin: 20px auto 0;
+    padding: 0 24px;
+  }
+  .footer-disclaimer p {
+    font-size: 11px;
+    color: var(--fg-light);
+    line-height: 1.6;
+    opacity: 0.7;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 14px;
+  }
+
   .footer-bottom {
     max-width: 1400px;
     margin: 0 auto;
     padding: 16px 24px;
-    margin-top: 28px;
+    margin-top: 12px;
     border-top: 1px solid var(--border);
     display: flex;
     flex-wrap: wrap;
@@ -234,7 +275,6 @@ const footerCols = [
   .footer-bottom-links a:hover { color: var(--accent); }
   .footer-slogan { opacity: 0.5; }
 
-  /* ── Responsive ──────────────────────────────────────────── */
   @media (max-width: 900px) {
     .footer-grid {
       grid-template-columns: 1fr 1fr;
@@ -251,6 +291,7 @@ const footerCols = [
     }
     .footer-bottom-links {
       justify-content: center;
+      flex-wrap: wrap;
     }
   }
 </style>
