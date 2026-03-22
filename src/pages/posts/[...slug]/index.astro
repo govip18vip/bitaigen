@@ -1,6 +1,6 @@
 ---
 // src/pages/posts/[...slug]/index.astro
-import { type CollectionEntry, getCollection } from "astro:content";
+import { type CollectionEntry, getCollection, render } from "astro:content";
 import PostDetails from "@/layouts/PostDetails.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import { getPath } from "@/utils/getPath";
@@ -23,8 +23,8 @@ export async function getStaticPaths() {
 
 const { post, allPosts } = Astro.props;
 
-// ★ Critical: call render() to get Content component and headings
-const { Content, headings } = await post.render();
+// ★ Astro v5 写法：用独立的 render() 函数
+const { Content, headings } = await render(post);
 
 // Build translation siblings
 const translations = await getTranslations(post, allPosts);
@@ -37,7 +37,8 @@ const sameLangPosts = allPosts.filter(p => {
 });
 const currentIdx = sameLangPosts.findIndex(p => p.id === post.id);
 const prevPost = currentIdx > 0 ? sameLangPosts[currentIdx - 1] : null;
-const nextPost = currentIdx < sameLangPosts.length - 1 ? sameLangPosts[currentIdx + 1] : null;
+const nextPost =
+  currentIdx < sameLangPosts.length - 1 ? sameLangPosts[currentIdx + 1] : null;
 ---
 
 <PostDetails
