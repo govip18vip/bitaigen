@@ -21,6 +21,7 @@ import Footer from "@/components/Footer.astro";
 import {
   localToUnified,
   fetchGhostUnified,
+  fetchSanityUnified,
   mergePosts,
   type UnifiedPost,
 } from "@/utils/mergedPosts";
@@ -48,8 +49,16 @@ try {
   console.warn("[index] Ghost unavailable, showing local posts only");
 }
 
-// ── 3. 合并 & 排序 ─────────────────────────────────────
-const merged = mergePosts(localUnified, ghostUnified);
+// ── 3. Sanity CMS 文章（AI自动生产内容，完全容错）────────
+let sanityUnified: UnifiedPost[] = [];
+try {
+  sanityUnified = await fetchSanityUnified({ limit: 30 });
+} catch (e) {
+  console.warn("[index] Sanity unavailable:", e);
+}
+
+// ── 4. 合并 & 排序 ─────────────────────────────────────
+const merged = mergePosts(localUnified, ghostUnified, sanityUnified);
 
 // ── 4. 分配到各个区域（防空数组）────────────────────────
 const featured = merged.filter(p => p.featured);

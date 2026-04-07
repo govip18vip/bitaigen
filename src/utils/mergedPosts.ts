@@ -1,17 +1,18 @@
 // src/utils/mergedPosts.ts
 // ─────────────────────────────────────────────────────────────
-// 合并本地 Markdown 文章和 Ghost CMS 文章，统一格式
+// 合并本地 Markdown + Ghost CMS + Sanity CMS 文章，统一格式
 // 用于首页和列表页展示
 // ─────────────────────────────────────────────────────────────
 
 import type { CollectionEntry } from "astro:content";
 import { getPosts, type GhostPost } from "./ghost";
 import type { Lang } from "@/i18n/ui";
+import { sanityClient, sanityImageUrl, type SanityPost, type SanityFlash } from "./sanity";
 
 // 统一的文章格式（兼容 Card 组件所需字段）
 export interface UnifiedPost {
   // 来源标识
-  source: "local" | "ghost";
+  source: "local" | "ghost" | "sanity";
 
   // Card 组件需要的核心字段
   id: string;
@@ -118,13 +119,64 @@ export function filterUnifiedByLang(
 }
 
 /**
- * 合并本地和 Ghost 文章，按时间倒序排列
+ * 将 Sanity 文章转换为统一格式
+ */
+export function sanityToUnified(post: SanityPost): UnifiedPost {
+  const imgRef = (post.coverImage?.asset as any)?._ref ?? "";
+  const ogImage = imgRef ? sanityImageUrl(imgRef, { width: 800, format: "webp" }) : "";
+
+  return {
+    source: "sanity",
+    id: `sanity-${post._id}`,
+    title: post.title,
+    description: post.description || "",
+    pubDatetime: new Date(post.pubDatetime),
+    modDatetime: post.modDatetime ? new Date(post.modDatetime) : null,
+    tags: post.tags || [],
+    ogImage,
+    author: post.author?.name || "Bitaigen 研究团队",
+    featured: post.featured || false,
+    lang: post.lang || "zh-CN",
+    href: `/news/${post.slug.current}`,
+  };
+}
+
+/**
+ * 从 Sanity 获取文章并转为统一格式（容错）
+ */
+export async function fetchSanityUnified(options?: {
+  lang?: Lang;
+  limit?: number;
+}): Promise<UnifiedPost[]> {
+  const { lang, limit = 20 } = options || {};
+  try {
+    const conditions = ['_type == "btgPost"', 'draft != true'];
+    if (lang) conditions.push(`lang == "${lang}"`);
+    const filter = conditions.join(" && ");
+
+    const posts = await sanityClient.fetch<SanityPost[]>(`
+      *[${filter}] | order(pubDatetime desc) [0...${limit}] {
+        _id, title, slug, lang, articleType, description,
+        coverImage, pubDatetime, modDatetime, featured, tags,
+        "author": author->{ name }
+      }
+    `);
+    return posts.map(sanityToUnified);
+  } catch (e) {
+    console.error("[mergedPosts] Sanity fetch failed:", e);
+    return [];
+  }
+}
+
+/**
+ * 合并本地、Ghost 和 Sanity 文章，按时间倒序排列
  */
 export function mergePosts(
   localPosts: UnifiedPost[],
-  ghostPosts: UnifiedPost[]
+  ghostPosts: UnifiedPost[],
+  sanityPosts: UnifiedPost[] = []
 ): UnifiedPost[] {
-  const all = [...localPosts, ...ghostPosts];
+  const all = [...localPosts, ...ghostPosts, ...sanityPosts];
 
   // 按发布时间倒序
   all.sort((a, b) => b.pubDatetime.getTime() - a.pubDatetime.getTime());
