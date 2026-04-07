@@ -1,0 +1,183 @@
+---
+// src/pages/learn/index.astro
+// 学习中心 — 主题集群 (Topic Cluster) 入口页
+// 作为各支柱主题的汇聚点，提升 Topical Authority
+// URL: /learn/
+
+import { getCollection } from "astro:content";
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import { SITE } from "@/config";
+import { getPath } from "@/utils/getPath";
+
+const allPosts = await getCollection("blog");
+const published = allPosts.filter(p => !p.data.draft);
+
+// 主题集群定义：每个 cluster 是一个支柱主题
+const clusters = [
+  {
+    id: "bitcoin",
+    icon: "₿",
+    color: "#F7931A",
+    title: "比特币 (Bitcoin) 完全指南",
+    desc: "从入门到精通：BTC 是什么、如何购买、如何存储、价格走势分析。",
+    tags: ["btc", "bitcoin", "比特币"],
+    href: "/coin/btc/",
+  },
+  {
+    id: "ethereum",
+    icon: "Ξ",
+    color: "#627EEA",
+    title: "以太坊 (Ethereum) 完全指南",
+    desc: "ETH 技术原理、智能合约、DeFi 生态、质押收益全解析。",
+    tags: ["eth", "ethereum", "以太坊"],
+    href: "/coin/eth/",
+  },
+  {
+    id: "exchange",
+    icon: "🏦",
+    color: "#F0B90B",
+    title: "加密货币交易所教程",
+    desc: "币安 Binance、OKX 注册、入金、交易、提现全流程教程。",
+    tags: ["exchange", "交易所", "binance", "okx"],
+    href: "/tags/exchange/",
+  },
+  {
+    id: "defi",
+    icon: "🔗",
+    color: "#00D395",
+    title: "DeFi 去中心化金融",
+    desc: "流动性挖矿、借贷协议、DEX 使用指南，理解 Web3 金融新范式。",
+    tags: ["defi", "web3"],
+    href: "/tags/blockchain/",
+  },
+  {
+    id: "beginner",
+    icon: "🎓",
+    color: "#A78BFA",
+    title: "新手入门必读",
+    desc: "零基础学加密货币：钱包创建、安全防骗、第一笔交易全指导。",
+    tags: ["beginner", "新手入门"],
+    href: "/tags/beginner/",
+  },
+  {
+    id: "prices",
+    icon: "📊",
+    color: "#38BDF8",
+    title: "实时行情与价格分析",
+    desc: "主流币种实时价格、K线走势、市值排行，辅助投资决策。",
+    tags: ["btc", "eth", "sol", "xrp"],
+    href: "/price/",
+  },
+];
+
+// 为每个 cluster 关联文章
+const clustersWithPosts = clusters.map(c => {
+  const posts = published
+    .filter(p => p.data.tags?.some(t => c.tags.includes(t.toLowerCase())))
+    .sort((a, b) => new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime())
+    .slice(0, 4);
+  return { ...c, posts };
+});
+
+const totalPosts = published.length;
+
+// CollectionPage schema for topic cluster hub
+const collectionSchema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${SITE.website}learn/#page`,
+  name: "加密货币学习中心 | Bitaigen",
+  description: "系统学习比特币、以太坊、DeFi、交易所使用教程。从新手入门到专业分析，主题集群式知识库。",
+  url: `${SITE.website}learn/`,
+  isPartOf: { "@id": `${new URL(SITE.website).origin}/#website` },
+  about: clusters.map(c => ({ "@type": "Thing", name: c.title })),
+};
+---
+
+<Layout
+  title={`加密货币学习中心 — 系统掌握比特币、以太坊、DeFi | ${SITE.title}`}
+  description="系统学习比特币、以太坊、DeFi、交易所使用教程。从新手入门到专业分析，Bitaigen 主题集群式知识库，一站式掌握区块链核心知识。"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(collectionSchema)} />
+  </Fragment>
+
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar currentLang="zh-CN" />
+
+    <main class="main-col" id="main-content" style="padding-bottom:48px;">
+
+      <!-- Hero -->
+      <section style="padding:28px 20px 24px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="width:3px;height:20px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+          <h1 style="font-size:22px;font-weight:800;color:var(--fg);margin:0;">加密货币学习中心</h1>
+        </div>
+        <p style="font-size:14px;color:var(--fg-muted);margin:0 0 16px;line-height:1.65;max-width:640px;">
+          系统化学习比特币、以太坊及区块链生态。从新手到专业，按主题聚合深度内容，助你建立完整的知识体系。
+        </p>
+        <div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-light);background:var(--bg-elevated);padding:5px 12px;border-radius:20px;border:1px solid var(--border);">
+          <span style="width:6px;height:6px;border-radius:50%;background:#4caf82;"></span>
+          共 {totalPosts} 篇深度内容 · 持续更新
+        </div>
+      </section>
+
+      <!-- 主题集群网格 -->
+      {clustersWithPosts.map(cluster => (
+        <section style="padding:0 16px 20px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+
+            <!-- 集群标题 -->
+            <div style={`display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,${cluster.color}0d 0%,transparent 60%);`}>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style={`font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:${cluster.color}22;border:1.5px solid ${cluster.color}44;`}>
+                  {cluster.icon}
+                </span>
+                <div>
+                  <h2 style={`font-size:15px;font-weight:700;color:var(--fg);margin:0 0 2px;`}>{cluster.title}</h2>
+                  <p style="font-size:12px;color:var(--fg-muted);margin:0;">{cluster.desc}</p>
+                </div>
+              </div>
+              <a href={cluster.href}
+                style={`flex-shrink:0;font-size:12px;font-weight:700;color:${cluster.color};text-decoration:none;padding:5px 12px;border-radius:5px;border:1.5px solid ${cluster.color}55;transition:background .15s;white-space:nowrap;`}
+                onmouseover={`this.style.background='${cluster.color}18'`}
+                onmouseout="this.style.background='transparent'">
+                查看全部 →
+              </a>
+            </div>
+
+            <!-- 文章列表 -->
+            {cluster.posts.length > 0 ? (
+              <div>
+                {cluster.posts.map((post, i) => (
+                  <a href={getPath(post.id, post.filePath)}
+                    style={`display:flex;align-items:flex-start;gap:12px;padding:12px 20px;text-decoration:none;color:var(--fg);transition:background .12s;${i < cluster.posts.length - 1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}`}
+                    onmouseover="this.style.background='var(--bg-elevated)'"
+                    onmouseout="this.style.background='transparent'">
+                    <span style={`width:6px;height:6px;border-radius:50%;background:${cluster.color};margin-top:6px;flex-shrink:0;`}></span>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:13.5px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                        {post.data.title}
+                      </div>
+                      <div style="font-size:11px;color:var(--fg-light);margin-top:3px;">
+                        {new Date(post.data.pubDatetime).toLocaleDateString("zh-CN", { year:"numeric", month:"short", day:"numeric" })}
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div style="padding:20px;font-size:13px;color:var(--fg-muted);">内容整理中，敬请期待…</div>
+            )}
+          </div>
+        </section>
+      ))}
+
+    </main>
+  </div>
+  <Footer />
+</Layout>

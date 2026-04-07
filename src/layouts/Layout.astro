@@ -122,13 +122,55 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <meta name="theme-color" content="" />
     <ClientRouter />
 
-    <!-- hreflang JSON-LD -->
+    <!-- Global JSON-LD: Organization + WebSite + WebPage -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      "@id": `${Astro.url.origin}${Astro.url.pathname}`,
-      "url": `${Astro.url.origin}${Astro.url.pathname}`,
-      "inLanguage": alternates.map(a => a.lang),
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": `${Astro.url.origin}/#organization`,
+          "name": SITE.title,
+          "url": SITE.website,
+          "logo": {
+            "@type": "ImageObject",
+            "@id": `${Astro.url.origin}/#logo`,
+            "url": `${Astro.url.origin}/favicon.svg`,
+            "contentUrl": `${Astro.url.origin}/favicon.svg`,
+            "width": 64,
+            "height": 64,
+            "caption": SITE.title,
+          },
+          "sameAs": [SITE.twitter, SITE.telegram].filter(Boolean),
+          "description": SITE.desc,
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${Astro.url.origin}/#website`,
+          "url": `${Astro.url.origin}/`,
+          "name": SITE.title,
+          "description": SITE.desc,
+          "publisher": { "@id": `${Astro.url.origin}/#organization` },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": `${Astro.url.origin}/search?q={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+          },
+          "inLanguage": alternates.map(a => a.lang),
+        },
+        {
+          "@type": "WebPage",
+          "@id": `${Astro.url.origin}${Astro.url.pathname}#webpage`,
+          "url": `${Astro.url.origin}${Astro.url.pathname}`,
+          "isPartOf": { "@id": `${Astro.url.origin}/#website` },
+          "about": { "@id": `${Astro.url.origin}/#organization` },
+          "inLanguage": HTML_LANG[lang],
+          ...(pubDatetime && { "datePublished": pubDatetime.toISOString() }),
+          ...(modDatetime && { "dateModified": modDatetime.toISOString() }),
+        },
+      ],
     })} />
 
     <!-- Analytics: Plausible -->

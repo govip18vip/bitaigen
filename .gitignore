@@ -26,9 +26,3 @@ pnpm-debug.log*
 # pagefind
 
 public/pagefind
-/.github
-.env.local
-/.claude
-/.claude
-/.vercel
-.dockerignore

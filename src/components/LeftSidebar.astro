@@ -74,6 +74,14 @@ const isActive = (p: string) => {
       </span>
     </a>
 
+    <!-- 学习中心 -->
+    <a href="/learn/" class:list={["lnav-item", { active: isActive("/learn") }]}>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:12px;">🎓</span>
+        <span>学习中心</span>
+      </span>
+    </a>
+
     <!-- Taxonomy groups -->
     {TAXONOMY.slice(2).map(cat => (
       <div class="lnav-group" id={`group-${cat.key}`}>

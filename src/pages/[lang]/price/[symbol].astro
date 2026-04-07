@@ -2,7 +2,9 @@
 // src/pages/[lang]/price/[symbol].astro
 // 非默认语言币种详情：/en/price/btc  /zh-tw/price/eth  等
 
-import type { GetStaticPaths } from "astro";
+// ISR: 服务端渲染，Vercel 缓存 5 分钟后台刷新
+export const prerender = false;
+
 import { getCollection } from "astro:content";
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
@@ -17,25 +19,41 @@ import {
 import { MAJOR_COINS, COIN_DB } from "@/utils/coinInfo";
 import { getPath } from "@/utils/getPath";
 
-export const getStaticPaths = (async () => {
-  const nonDefaultLangs = (Object.keys(LANGUAGES) as Lang[]).filter(
-    l => l !== DEFAULT_LANG
-  );
-  const paths = [];
-  for (const lang of nonDefaultLangs) {
-    for (const coin of MAJOR_COINS) {
-      paths.push({
-        params: { lang: LANG_TO_PATH[lang], symbol: coin.symbol.toLowerCase() },
-        props: { lang, coinId: coin.id },
-      });
+// 从 URL 参数解析 lang + symbol
+const { lang: langParam, symbol } = Astro.params;
+const lang = (Object.entries(LANG_TO_PATH).find(([, v]) => v === langParam)?.[0] as Lang) ?? DEFAULT_LANG;
+const coinEntry = MAJOR_COINS.find(c => c.symbol.toLowerCase() === symbol);
+if (!coinEntry) return Astro.redirect("/404");
+const coin = COIN_DB[coinEntry.id];
+if (!coin) return Astro.redirect("/404");
+
+// 服务端预取价格
+interface PriceData {
+  priceUSD: number; change24h: number; high24h: number;
+  low24h: number;  volume24h: number; marketCap: number;
+  rank: number;    supply: number;
+}
+let serverPrice: PriceData | null = null;
+try {
+  const r = await fetch("https://orbit.biyijia.com/api/coins?per_page=60",
+    { signal: AbortSignal.timeout(5000) });
+  if (r.ok) {
+    const coins: any[] = await r.json();
+    const match = coins.find(c => c.symbol?.toUpperCase() === coin.symbol);
+    if (match) {
+      serverPrice = {
+        priceUSD:  match.current_price ?? 0,
+        change24h: match.price_change_percentage_24h_in_currency ?? 0,
+        high24h:   match.high_24h ?? 0,
+        low24h:    match.low_24h  ?? 0,
+        volume24h: match.total_volume ?? 0,
+        marketCap: match.market_cap  ?? 0,
+        rank:      match.market_cap_rank ?? 0,
+        supply:    match.circulating_supply ?? 0,
+      };
     }
   }
-  return paths;
-}) satisfies GetStaticPaths;
-
-const { lang, coinId } = Astro.props as { lang: Lang; coinId: string };
-const coin = COIN_DB[coinId];
-if (!coin) return Astro.redirect("/404");
+} catch { /* 客户端 JS 兜底 */ }
 
 const t = useTranslations(lang);
 const base = `/${LANG_TO_PATH[lang]}`;
@@ -48,7 +66,7 @@ const relatedPosts = allPosts
   .sort((a, b) => new Date(b.data.pubDatetime).getTime() - new Date(a.data.pubDatetime).getTime())
   .slice(0, 10);
 
-const otherCoins = MAJOR_COINS.filter(c => c.id !== coinId).slice(0, 6);
+const otherCoins = MAJOR_COINS.filter(c => c.id !== coinEntry.id).slice(0, 6);
 
 const L: Record<string, Record<Lang, string>> = {
   livePrice:   { "zh-CN": "实时价格",   "zh-TW": "即時價格",   en: "Live Price",            es: "Precio en Vivo",          pt: "Preço ao Vivo" },
@@ -140,37 +158,60 @@ const pageTitle = `${coin.name[lang]} (${coin.symbol}) ${L.livePrice[lang]}`;
               <p style="font-size:12px;color:var(--fg-muted);margin:3px 0 0;">{L.source[lang]}</p>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <span id="rank-badge" class="ctag-blue">—</span>
+              <span id="rank-badge" class="ctag-blue">{serverPrice?.rank ? `#${serverPrice.rank}` : "—"}</span>
               {coin.consensus && <span class="ctag">{coin.consensus.split("(")[0].trim().slice(0,20)}</span>}
             </div>
           </div>
 
-          <!-- 价格网格 -->
-          <div class="coin-price-grid">
-            <div class="coin-price-cell coin-price-main">
-              <div class="coin-price-label">{L.priceUSD[lang]}</div>
-              <div id="coin-price" style="font-size:clamp(24px,5vw,32px);font-weight:800;color:var(--fg);font-variant-numeric:tabular-nums;">—</div>
-              <div id="coin-change" style="font-size:14px;margin-top:4px;font-weight:700;">—</div>
-            </div>
-            <div class="coin-price-cell">
-              <div class="coin-price-label">{L.high24h[lang]}</div>
-              <div id="coin-high" class="coin-price-num">—</div>
-              <div class="coin-price-label" style="margin-top:8px;">{L.low24h[lang]}</div>
-              <div id="coin-low" class="coin-price-num">—</div>
-            </div>
-            <div class="coin-price-cell">
-              <div class="coin-price-label">{L.vol24h[lang]}</div>
-              <div id="coin-vol" class="coin-price-num">—</div>
-              <div class="coin-price-label" style="margin-top:8px;">{L.mcap[lang]}</div>
-              <div id="coin-mcap" class="coin-price-num">—</div>
-            </div>
-            <div class="coin-price-cell">
-              <div class="coin-price-label">{L.supply[lang]}</div>
-              <div id="coin-supply" class="coin-price-num">—</div>
-              <div class="coin-price-label" style="margin-top:8px;">{L.maxSupply[lang]}</div>
-              <div class="coin-price-num" style={`color:${coin.color};`}>{coin.maxSupply || "∞"}</div>
-            </div>
-          </div>
+          <!-- 价格网格 (服务端预填充，客户端 JS 实时刷新) -->
+          {(() => {
+            const fmt = (n: number) => n >= 1000
+              ? "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 })
+              : "$" + n.toFixed(n >= 1 ? 2 : 5);
+            const fmtB = (n: number) => {
+              if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+              if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+              return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+            };
+            const fmtS = (n: number) => {
+              if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+              if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+              return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+            };
+            const sp = serverPrice;
+            const chgColor = sp ? (sp.change24h >= 0 ? "#4caf82" : "#f0b429") : "var(--fg-muted)";
+            return (
+              <div class="coin-price-grid">
+                <div class="coin-price-cell coin-price-main">
+                  <div class="coin-price-label">{L.priceUSD[lang]}</div>
+                  <div id="coin-price" style="font-size:clamp(24px,5vw,32px);font-weight:800;color:var(--fg);font-variant-numeric:tabular-nums;">
+                    {sp ? fmt(sp.priceUSD) : "—"}
+                  </div>
+                  <div id="coin-change" style={`font-size:14px;margin-top:4px;font-weight:700;color:${chgColor};`}>
+                    {sp ? `${sp.change24h >= 0 ? "▲" : "▼"}${Math.abs(sp.change24h).toFixed(2)}%` : "—"}
+                  </div>
+                </div>
+                <div class="coin-price-cell">
+                  <div class="coin-price-label">{L.high24h[lang]}</div>
+                  <div id="coin-high" class="coin-price-num">{sp && sp.high24h ? fmt(sp.high24h) : "—"}</div>
+                  <div class="coin-price-label" style="margin-top:8px;">{L.low24h[lang]}</div>
+                  <div id="coin-low" class="coin-price-num">{sp && sp.low24h ? fmt(sp.low24h) : "—"}</div>
+                </div>
+                <div class="coin-price-cell">
+                  <div class="coin-price-label">{L.vol24h[lang]}</div>
+                  <div id="coin-vol" class="coin-price-num">{sp && sp.volume24h ? fmtB(sp.volume24h) : "—"}</div>
+                  <div class="coin-price-label" style="margin-top:8px;">{L.mcap[lang]}</div>
+                  <div id="coin-mcap" class="coin-price-num">{sp && sp.marketCap ? fmtB(sp.marketCap) : "—"}</div>
+                </div>
+                <div class="coin-price-cell">
+                  <div class="coin-price-label">{L.supply[lang]}</div>
+                  <div id="coin-supply" class="coin-price-num">{sp && sp.supply ? fmtS(sp.supply) : "—"}</div>
+                  <div class="coin-price-label" style="margin-top:8px;">{L.maxSupply[lang]}</div>
+                  <div class="coin-price-num" style={`color:${coin.color};`}>{coin.maxSupply || "∞"}</div>
+                </div>
+              </div>
+            );
+          })()}
 
           <!-- 交易所直通 -->
           <div style="display:flex;gap:8px;padding:12px 24px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
@@ -455,7 +496,7 @@ const pageTitle = `${coin.name[lang]} (${coin.symbol}) ${L.livePrice[lang]}`;
   }
 </style>
 
-<script is:inline define:vars={{ binanceSymbol: coin.binanceSymbol, coinId, coinColor: coin.color, coinSymbol: coin.symbol }}>
+<script is:inline define:vars={{ binanceSymbol: coin.binanceSymbol, coinId: coinEntry.id, coinColor: coin.color, coinSymbol: coin.symbol }}>
 (function(){
   const fmt = n => {
     if (!n || isNaN(n)) return "—";
