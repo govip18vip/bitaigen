@@ -6,7 +6,7 @@
 
 import type { CollectionEntry } from "astro:content";
 import { getPosts, type GhostPost } from "./ghost";
-import type { Lang } from "@/i18n/ui";
+import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
 import { sanityClient, sanityImageUrl, type SanityPost, type SanityFlash } from "./sanity";
 
 // 统一的文章格式（兼容 Card 组件所需字段）
@@ -137,7 +137,9 @@ export function sanityToUnified(post: SanityPost): UnifiedPost {
     author: post.author?.name || "Bitaigen 研究团队",
     featured: post.featured || false,
     lang: post.lang || "zh-CN",
-    href: `/news/${post.slug.current}`,
+    href: post.lang && post.lang !== "zh-CN"
+      ? `/${LANG_TO_PATH[post.lang as Lang]}/news/${post.slug.current}`
+      : `/news/${post.slug.current}`,
   };
 }
 
