@@ -9,7 +9,7 @@ import { SITE } from "@/config";
 
 const REF = "B2345";
 const WEB = `https://www.okx.com/join/${REF}`;
-const APP = `https://www.okx.com/download?invitedid=${REF}`;
+const APP = `https://www.okx.com/join/${REF}`; // OKX only supports registration links
 
 const pageSchema = {
   "@context": "https://schema.org",
@@ -88,7 +88,7 @@ const faqSchema = {
         </a>
         <a href={APP} target="_blank" rel="noopener noreferrer sponsored" data-placement="go_okx_hero"
           style="display:block;padding:14px 20px;background:rgba(255,255,255,0.1);color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none;text-align:center;border:1px solid rgba(255,255,255,0.2);transition:opacity 0.15s;">
-          下载 OKX APP
+          注册 OKX 账户
         </a>
       </div>
     </section>
