@@ -61,7 +61,7 @@ export default defineConfig({
           ...item,
           changefreq,
           priority,
-          lastmod: new Date(item.lastmod ?? Date.now()).toISOString(),
+          lastmod: item.lastmod ? new Date(item.lastmod).toISOString() : undefined,
         };
       },
       i18n: {

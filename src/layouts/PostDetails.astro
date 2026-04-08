@@ -24,6 +24,9 @@ import BinanceBanner from "@/components/BinanceBanner.astro";
 import BinanceFloating from "@/components/BinanceFloating.astro";
 import EditPost from "@/components/EditPost.astro";
 import SubscribeForm from "@/components/SubscribeForm.astro";
+import RelatedPosts from "@/components/RelatedPosts.astro";
+import ScrollSubscribe from "@/components/ScrollSubscribe.astro";
+import ExchangeCTA from "@/components/ExchangeCTA.astro";
 
 import { SITE } from "@/config";
 import { slugifyStr } from "@/utils/slugify";
@@ -45,6 +48,7 @@ interface Props {
   translations?: TranslationEntry[];
   prevPost?: CollectionEntry<"blog"> | null;
   nextPost?: CollectionEntry<"blog"> | null;
+  allPosts?: CollectionEntry<"blog">[];
 }
 
 const {
@@ -53,6 +57,7 @@ const {
   translations = [],
   prevPost = null,
   nextPost = null,
+  allPosts = [],
 } = Astro.props;
 
 // ── Extract data ─────────────────────────────────────────────
@@ -87,6 +92,12 @@ const resolvedOgImage = (() => {
   if (typeof img === "string") return img;
   return (img as any)?.src ?? undefined;
 })();
+
+// Reading time estimate
+const body = post.body ?? "";
+const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(body);
+const wordCount = isCJK ? body.replace(/\s+/g, "").length : body.split(/\s+/).length;
+const readingTime = Math.max(1, Math.round(wordCount / (isCJK ? 400 : 250)));
 
 // Filtered headings for TOC (h2 + h3)
 const tocHeadings = headings.filter(h => h.depth >= 2 && h.depth <= 3);
@@ -317,7 +328,19 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
               <span itemprop="name">{author ?? SITE.author}</span>
             </a>
             <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} timezone={postTimezone} size="sm" />
+            <span class="pd-readtime">{readingTime} min read</span>
             <EditPost hideEditPost={hideEditPost} post={post} class="pd-edit-link" />
+            <button
+              id="bookmark-btn"
+              class="pd-bookmark-btn"
+              data-href={Astro.url.pathname}
+              data-title={title}
+              data-img={resolvedOgImage ?? ""}
+              data-tag={tags[0] ?? ""}
+              aria-label="Bookmark"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
           </div>
 
           <!-- Description -->
@@ -377,8 +400,17 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
                 ))}
               </ul>
             </div>
-            <ShareLinks />
+            <div class="pd-share-row">
+              <ShareLinks />
+              <button id="copy-link-btn" class="pd-copy-link" title="Copy link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span>Copy link</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Related Articles -->
+          <RelatedPosts currentPost={post} allPosts={allPosts} lang={postLang} />
 
           <!-- Prev / Next navigation -->
           {(prevPost || nextPost) && (
@@ -416,9 +448,9 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
                 </ul>
               </nav>
 
-              <!-- Compact Binance banner in sidebar -->
+              <!-- Exchange CTA in sidebar -->
               <div class="pd-toc-banner">
-                <BinanceBanner variant="compact" lang={postLang} />
+                <ExchangeCTA variant="sidebar" />
               </div>
             </div>
           </aside>
@@ -443,6 +475,7 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     data-sidebar="true">
   </script>
 
+  <ScrollSubscribe />
   <BinanceFloating />
   <BackToTopButton />
   <Footer />
@@ -566,6 +599,51 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     flex-shrink: 0;
   }
   .pd-edit-link { font-size: 12px; }
+  .pd-readtime {
+    font-size: 12px;
+    color: var(--fg-light);
+    white-space: nowrap;
+  }
+  .pd-bookmark-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .pd-bookmark-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .pd-bookmark-btn.active { background: var(--tag-orange-bg); border-color: var(--accent); color: var(--accent); }
+  .pd-bookmark-btn.active svg { fill: var(--accent); }
+  .pd-share-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pd-copy-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg-elevated);
+    color: var(--fg-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .pd-copy-link:hover { border-color: var(--accent); color: var(--accent); }
+  .pd-copy-link.copied { border-color: var(--accent-green); color: var(--accent-green); }
 
   /* ── Description ────────────────────────────────────────── */
   .pd-description {
@@ -952,5 +1030,112 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
   initReadingProgress();
   document.addEventListener("astro:after-swap", initReadingProgress);
+</script>
+
+<script>
+  // ── 记录阅读历史 ──────────────────────────────────────────
+  import { recordVisit } from "@/scripts/reading-history";
+
+  function recordCurrentArticle() {
+    const article = document.getElementById("article");
+    if (!article) return;
+    const h1 = document.querySelector<HTMLElement>(".pd-title");
+    const heroImg = document.querySelector<HTMLImageElement>(".pd-hero-img img");
+    if (!h1) return;
+    recordVisit({
+      title: h1.textContent?.trim() ?? "",
+      href: window.location.pathname,
+      img: heroImg?.src ?? "",
+    });
+  }
+
+  recordCurrentArticle();
+  document.addEventListener("astro:after-swap", recordCurrentArticle);
+</script>
+
+<script>
+  // ── Bookmark button ──
+  import { isBookmarked, toggle as bmToggle } from "@/scripts/bookmarks";
+
+  function initBookmark() {
+    const btn = document.getElementById("bookmark-btn") as HTMLButtonElement | null;
+    if (!btn) return;
+    const href = btn.dataset.href ?? "";
+
+    function updateUI() {
+      const active = isBookmarked(href);
+      btn!.classList.toggle("active", active);
+      btn!.setAttribute("aria-label", active ? "Remove bookmark" : "Add bookmark");
+    }
+
+    updateUI();
+    btn.addEventListener("click", () => {
+      bmToggle({
+        title: btn.dataset.title ?? "",
+        href,
+        img: btn.dataset.img ?? "",
+        tag: btn.dataset.tag ?? "",
+      });
+      updateUI();
+    });
+  }
+
+  initBookmark();
+  document.addEventListener("astro:after-swap", initBookmark);
+</script>
+
+<script>
+  // ── Copy link button ──
+  function initCopyLink() {
+    const btn = document.getElementById("copy-link-btn");
+    if (!btn) return;
+
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        btn.classList.add("copied");
+        const span = btn.querySelector("span");
+        const orig = span?.textContent;
+        if (span) span.textContent = "Copied!";
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          if (span && orig) span.textContent = orig;
+        }, 2000);
+      } catch {}
+    });
+  }
+
+  initCopyLink();
+  document.addEventListener("astro:after-swap", initCopyLink);
+</script>
+
+<script>
+  // ── Image lightbox for article images ──
+  function initLightbox() {
+    const article = document.getElementById("article");
+    if (!article) return;
+
+    article.querySelectorAll<HTMLImageElement>("img").forEach(img => {
+      if (img.closest("a")) return; // already linked
+      img.style.cursor = "zoom-in";
+      img.addEventListener("click", () => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;";
+        const clone = document.createElement("img");
+        clone.src = img.src;
+        clone.alt = img.alt;
+        clone.style.cssText = "max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);";
+        overlay.appendChild(clone);
+        overlay.addEventListener("click", () => overlay.remove());
+        document.addEventListener("keydown", function esc(e) {
+          if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", esc); }
+        });
+        document.body.appendChild(overlay);
+      });
+    });
+  }
+
+  initLightbox();
+  document.addEventListener("astro:after-swap", initLightbox);
 </script>
 

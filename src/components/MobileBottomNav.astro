@@ -1,0 +1,135 @@
+---
+// src/components/MobileBottomNav.astro
+// Fixed bottom navigation bar for mobile (<768px)
+import { getLang, useTranslations, LANG_TO_PATH } from "@/i18n/ui";
+
+const lang = getLang(Astro.url);
+const t = useTranslations(lang);
+const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
+
+const items = [
+  { key: "home",      href: base || "/",             label: t("bnav.home"),      match: "^/$|^/(zh-tw|en|es|pt)/?$" },
+  { key: "flash",     href: base + "/flash",         label: t("bnav.flash"),     match: "/flash" },
+  { key: "prices",    href: base + "/price",          label: t("bnav.prices"),    match: "/price" },
+  { key: "watchlist", href: base + "/price#watchlist", label: t("bnav.watchlist"), match: "#watchlist" },
+  { key: "search",    href: base + "/search",         label: t("bnav.search"),    match: "/search" },
+];
+---
+
+<nav class="mobile-bnav" aria-label="Mobile navigation" id="mobile-bnav">
+  {items.map(item => (
+    <a href={item.href} class="mobile-bnav-item" data-nav-key={item.key} data-match={item.match}>
+      <span class="mobile-bnav-icon" data-icon={item.key} />
+      <span class="mobile-bnav-label">{item.label}</span>
+    </a>
+  ))}
+</nav>
+
+<style>
+  .mobile-bnav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9000;
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (max-width: 768px) {
+    .mobile-bnav {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-around;
+    }
+  }
+
+  .mobile-bnav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0 2px;
+    text-decoration: none;
+    color: var(--fg-muted);
+    font-size: 10px;
+    font-weight: 500;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-bnav-item:hover,
+  .mobile-bnav-item.active {
+    color: var(--accent);
+  }
+
+  .mobile-bnav-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-bnav-label {
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+
+  /* SVG icons via CSS background */
+  .mobile-bnav-icon[data-icon="home"] {
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22'/%3E%3C/svg%3E") center/18px no-repeat;
+  }
+  .mobile-bnav-icon[data-icon="flash"] {
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/%3E%3C/svg%3E") center/18px no-repeat;
+  }
+  .mobile-bnav-icon[data-icon="prices"] {
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 18 12 15 21 9 3 6 12 2 12'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 18 12 15 21 9 3 6 12 2 12'/%3E%3C/svg%3E") center/18px no-repeat;
+  }
+  .mobile-bnav-icon[data-icon="watchlist"] {
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E") center/18px no-repeat;
+  }
+  .mobile-bnav-icon[data-icon="search"] {
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") center/18px no-repeat;
+  }
+</style>
+
+<script>
+  function initBottomNav() {
+    const nav = document.getElementById("mobile-bnav");
+    if (!nav) return;
+    const path = window.location.pathname;
+    nav.querySelectorAll<HTMLAnchorElement>(".mobile-bnav-item").forEach(item => {
+      const match = item.dataset.match ?? "";
+      const key = item.dataset.navKey;
+      let active = false;
+      if (key === "home") {
+        active = /^\/$|^\/(zh-tw|en|es|pt)\/?$/.test(path);
+      } else if (match.startsWith("#")) {
+        active = false; // watchlist only highlights when hash is present
+      } else {
+        active = path.includes(match);
+      }
+      item.classList.toggle("active", active);
+    });
+  }
+
+  initBottomNav();
+  document.addEventListener("astro:after-swap", initBottomNav);
+</script>

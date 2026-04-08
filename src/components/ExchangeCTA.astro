@@ -1,0 +1,112 @@
+---
+// src/components/ExchangeCTA.astro
+// Contextual exchange signup CTA — placed in article sidebar or after content
+// Shows Binance + OKX with referral codes
+
+interface Props {
+  variant?: "sidebar" | "inline";
+}
+
+const { variant = "sidebar" } = Astro.props;
+---
+
+<div class:list={["ex-cta", `ex-cta-${variant}`]} data-placement={`exchange_cta_${variant}`}>
+  <div class="ex-cta-title">开始交易加密货币</div>
+
+  <a href="/go/binance" class="ex-cta-card ex-cta-binance" rel="sponsored">
+    <div class="ex-cta-logo">B</div>
+    <div class="ex-cta-info">
+      <div class="ex-cta-name">币安 Binance</div>
+      <div class="ex-cta-tag">全球最大 · 邀请码 B2345</div>
+    </div>
+    <span class="ex-cta-arrow">→</span>
+  </a>
+
+  <a href="/go/okx" class="ex-cta-card ex-cta-okx" rel="sponsored">
+    <div class="ex-cta-logo ex-cta-logo-okx">O</div>
+    <div class="ex-cta-info">
+      <div class="ex-cta-name">OKX</div>
+      <div class="ex-cta-tag">Web3钱包 · 邀请码 B2345</div>
+    </div>
+    <span class="ex-cta-arrow">→</span>
+  </a>
+</div>
+
+<style>
+  .ex-cta {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ex-cta-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--fg);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ex-cta-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .ex-cta-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ex-cta-card:hover {
+    background: var(--bg-elevated);
+  }
+  .ex-cta-binance:hover { border-color: var(--accent); }
+  .ex-cta-okx:hover { border-color: var(--accent-green); }
+  .ex-cta-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .ex-cta-logo-okx {
+    background: var(--accent-green);
+  }
+  .ex-cta-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .ex-cta-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+  .ex-cta-tag {
+    font-size: 11px;
+    color: var(--fg-muted);
+  }
+  .ex-cta-arrow {
+    color: var(--fg-muted);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+</style>

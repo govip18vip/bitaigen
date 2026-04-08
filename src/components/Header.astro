@@ -32,8 +32,9 @@ function langHref(target: Lang): string {
 ---
 
 <!-- Top Utility Bar -->
-<div class="topbar">
-  <div
+<header class="topbar" role="banner">
+  <nav
+    aria-label="Site navigation"
     style="max-width:1400px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:40px;gap:16px;"
   >
     <!-- Left: useful navigation links -->
@@ -126,8 +127,8 @@ function langHref(target: Lang): string {
         {t("topbar.login")}
       </a>
     </div>
-  </div>
-</div>
+  </nav>
+</header>
 
 <!-- Live Price Ticker -->
 <div class="ticker-wrap" style="height:30px;overflow:hidden;" aria-label="Live prices" role="marquee">

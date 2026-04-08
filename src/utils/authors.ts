@@ -38,7 +38,7 @@ export const AUTHORS: Record<string, Author> = {
       es:      "Bitaigen es un equipo editorial profesional especializado en blockchain y criptomonedas. Cubrimos Bitcoin, Ethereum, DeFi, tutoriales de exchanges y análisis de mercado para lectores globales.",
       pt:      "Bitaigen é uma equipe editorial profissional especializada em blockchain e criptomoedas. Cobrimos Bitcoin, Ethereum, DeFi, tutoriais de exchanges e análise de mercado para leitores globais.",
     },
-    avatar: "/og-crypto.jpg",
+    avatar: "/favicon.svg",
     expertise: ["Bitcoin", "Ethereum", "DeFi", "Binance", "OKX", "区块链", "加密货币交易", "Web3"],
     twitter:  "https://x.com/tanfyoo",
     telegram: "https://t.me/AllenAmbrose",

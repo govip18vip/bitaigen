@@ -3,6 +3,7 @@
 import { ClientRouter } from "astro:transitions";
 import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
+import MobileBottomNav from "@/components/MobileBottomNav.astro";
 import "@/styles/global.css";
 import "../styles/mobile-fixes.css";
 
@@ -57,7 +58,16 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonicalURL} />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://api.coingecko.com" />
+    <link rel="dns-prefetch" href="https://orbit.biyijia.com" />
 
     <!-- hreflang alternates -->
     {alternates.map(a => (
@@ -73,8 +83,8 @@ const socialImageURL = new URL(ogImage, Astro.url);
     {SITE.yandexSiteVerification && <meta name="yandex-verification" content={SITE.yandexSiteVerification} />}
 
     <!-- SEO meta -->
-    <title>{title}</title>
-    <meta name="title"       content={title} />
+    <title>{title.includes(SITE.title) ? title : `${title} | ${SITE.title}`}</title>
+    <meta name="title"       content={title.includes(SITE.title) ? title : `${title} | ${SITE.title}`} />
     <meta name="description" content={description} data-i18n="site.desc" />
     <meta name="author"      content={author} />
     <link rel="sitemap"      href="/sitemap-index.xml" />
@@ -120,7 +130,8 @@ const socialImageURL = new URL(ogImage, Astro.url);
       })();
     </script>
 
-    <meta name="theme-color" content="" />
+    <meta name="theme-color" content="#f7931a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0e14" media="(prefers-color-scheme: dark)" />
     <ClientRouter />
 
     <!-- Global JSON-LD: Organization + WebSite + WebPage -->
@@ -205,12 +216,18 @@ const socialImageURL = new URL(ogImage, Astro.url);
   <body>
     <slot />
 
+    <MobileBottomNav />
+
     <script>
       import "@/scripts/theme.ts";
     </script>
 
     <script>
       import "@/i18n/detect.ts";
+    </script>
+
+    <script>
+      import "@/scripts/analytics.ts";
     </script>
 
   </body>

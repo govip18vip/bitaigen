@@ -1,0 +1,17 @@
+{
+  "name": "Bitaigen - Blockchain News & Crypto Insights",
+  "short_name": "Bitaigen",
+  "description": "Professional blockchain news platform — Bitcoin price analysis, exchange tutorials, crypto wallet security guides.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0e14",
+  "theme_color": "#f7931a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

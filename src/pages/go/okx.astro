@@ -1,0 +1,227 @@
+---
+// src/pages/go/okx.astro
+// OKX 高转化率落地页 /go/okx
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+
+const REF = "B2345";
+const WEB = `https://www.okx.com/join/${REF}`;
+const APP = `https://www.okx.com/download?invitedid=${REF}`;
+
+const pageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "OKX注册下载 — 邀请码B2345享手续费折扣",
+  description: "通过邀请码B2345注册OKX，享受手续费折扣及新用户奖励。支持网页注册和APP下载。",
+  url: `${SITE.website}go/okx`,
+  breadcrumb: {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
+      { "@type": "ListItem", position: 2, name: "OKX注册", item: `${SITE.website}go/okx` },
+    ],
+  },
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "OKX邀请码B2345有什么优惠？",
+      acceptedAnswer: { "@type": "Answer",
+        text: "使用邀请码B2345注册OKX可享受手续费折扣及新用户专属奖励，包含交易手续费最高20%返佣。" },
+    },
+    {
+      "@type": "Question",
+      name: "OKX和币安哪个更适合新手？",
+      acceptedAnswer: { "@type": "Answer",
+        text: "两者都适合新手。币安是全球最大交易所，流动性最好；OKX的Web3钱包和交易工具更丰富，UI设计更现代。建议两个都注册，根据使用体验选择主力平台。" },
+    },
+    {
+      "@type": "Question",
+      name: "OKX支持哪些国家和地区？",
+      acceptedAnswer: { "@type": "Answer",
+        text: "OKX支持全球200多个国家和地区的用户注册使用，但部分国家（如美国）受限。中国大陆用户可注册使用，但需注意当地法规。" },
+    },
+  ],
+};
+---
+
+<Layout
+  title="OKX注册下载 — 邀请码B2345享手续费折扣 | Bitaigen"
+  description="通过邀请码B2345注册OKX交易所，享受手续费折扣及新用户奖励。提供APP下载和网页注册入口。"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <Header />
+
+  <main style="max-width:720px;margin:0 auto;padding:24px 16px 60px;">
+
+    <!-- Breadcrumb -->
+    <nav style="font-size:13px;color:var(--fg-muted);margin-bottom:20px;">
+      <a href="/" style="color:var(--fg-muted);text-decoration:none;">首页</a>
+      <span style="margin:0 6px;opacity:0.5;">›</span>
+      <span style="color:var(--fg);">OKX注册</span>
+    </nav>
+
+    <!-- Hero -->
+    <section style="text-align:center;padding:32px 20px;background:linear-gradient(135deg,#000 0%,#1a1a2e 100%);border-radius:16px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.1);">
+      <div style="font-size:48px;margin-bottom:12px;">🏦</div>
+      <h1 style="font-size:24px;font-weight:800;color:#fff;margin:0 0 8px;">
+        OKX 注册下载
+      </h1>
+      <p style="font-size:14px;color:rgba(255,255,255,0.7);margin:0 0 20px;">
+        邀请码 <strong style="color:#00c896;font-size:18px;">{REF}</strong> · 享手续费折扣 + 新用户奖励
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto;">
+        <a href={WEB} target="_blank" rel="noopener noreferrer sponsored" data-placement="go_okx_hero"
+          style="display:block;padding:14px 20px;background:#00c896;color:#fff;font-weight:700;font-size:15px;border-radius:10px;text-decoration:none;text-align:center;transition:opacity 0.15s;">
+          网页注册 OKX →
+        </a>
+        <a href={APP} target="_blank" rel="noopener noreferrer sponsored" data-placement="go_okx_hero"
+          style="display:block;padding:14px 20px;background:rgba(255,255,255,0.1);color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none;text-align:center;border:1px solid rgba(255,255,255,0.2);transition:opacity 0.15s;">
+          下载 OKX APP
+        </a>
+      </div>
+    </section>
+
+    <!-- Why OKX -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:18px;background:var(--accent-green);border-radius:2px;display:inline-block;"></span>
+        为什么选择 OKX？
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:20px;margin-bottom:6px;">🌐</div>
+          <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">Web3 钱包</div>
+          <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">内置多链钱包，支持 DeFi/NFT/DApp 一站式操作</div>
+        </div>
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:20px;margin-bottom:6px;">📊</div>
+          <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">专业交易</div>
+          <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">现货/合约/期权/跟单，工具齐全适合各级别交易者</div>
+        </div>
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:20px;margin-bottom:6px;">💰</div>
+          <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">低手续费</div>
+          <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">现货 0.08%，合约 0.02%/0.05%，使用邀请码再享折扣</div>
+        </div>
+        <div style="padding:14px;background:var(--bg-elevated);border-radius:8px;">
+          <div style="font-size:20px;margin-bottom:6px;">🔐</div>
+          <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">安全可靠</div>
+          <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">储备金证明公开透明，资产 1:1 储备，用户资金安全有保障</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Steps -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:18px;background:var(--accent-green);border-radius:2px;display:inline-block;"></span>
+        3 步开始交易
+      </h2>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--accent-green);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--fg);">注册账户</div>
+            <div style="font-size:12px;color:var(--fg-muted);line-height:1.6;">使用邮箱或手机号注册，填入邀请码 <strong style="color:var(--accent-green);">{REF}</strong> 享折扣</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--accent-green);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--fg);">身份验证 (KYC)</div>
+            <div style="font-size:12px;color:var(--fg-muted);line-height:1.6;">上传身份证件完成实名认证，通常 5 分钟内审核通过</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <span style="width:28px;height:28px;border-radius:50%;background:var(--accent-green);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--fg);">入金交易</div>
+            <div style="font-size:12px;color:var(--fg-muted);line-height:1.6;">通过 C2C/银行卡/加密转账入金，即可开始交易</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Binance vs OKX comparison -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+        OKX vs 币安 快速对比
+      </h2>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:10px 8px;color:var(--fg-muted);font-weight:600;">项目</th>
+              <th style="text-align:center;padding:10px 8px;color:var(--accent-green);font-weight:700;">OKX</th>
+              <th style="text-align:center;padding:10px 8px;color:var(--accent);font-weight:700;">币安</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">现货手续费</td><td style="text-align:center;color:var(--fg);">0.08%</td><td style="text-align:center;color:var(--fg);">0.1%</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">合约手续费</td><td style="text-align:center;color:var(--fg);">0.02%/0.05%</td><td style="text-align:center;color:var(--fg);">0.02%/0.04%</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">Web3 钱包</td><td style="text-align:center;color:var(--accent-green);font-weight:600;">内置</td><td style="text-align:center;color:var(--fg-muted);">独立APP</td></tr>
+            <tr style="border-bottom:1px solid var(--border-subtle);"><td style="padding:10px 8px;color:var(--fg);">跟单交易</td><td style="text-align:center;color:var(--accent-green);font-weight:600;">支持</td><td style="text-align:center;color:var(--accent);font-weight:600;">支持</td></tr>
+            <tr><td style="padding:10px 8px;color:var(--fg);">储备金证明</td><td style="text-align:center;color:var(--accent-green);font-weight:600;">公开</td><td style="text-align:center;color:var(--accent);font-weight:600;">公开</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:11px;color:var(--fg-muted);margin-top:12px;text-align:center;">
+        建议：两个平台都注册，根据使用体验选择主力。
+        <a href="/go/binance" style="color:var(--accent);text-decoration:none;font-weight:600;">注册币安 →</a>
+      </p>
+    </section>
+
+    <!-- FAQ -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;" itemscope itemtype="https://schema.org/FAQPage">
+      <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
+        <span style="width:3px;height:18px;background:var(--accent-green);border-radius:2px;display:inline-block;"></span>
+        常见问题
+      </h2>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);" itemprop="name">OKX邀请码B2345有什么优惠？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">使用邀请码B2345注册OKX可享受手续费折扣及新用户专属奖励，包含交易手续费最高20%返佣。</p>
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);" itemprop="name">OKX和币安哪个更适合新手？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">两者都适合新手。币安全球最大，流动性好；OKX的Web3钱包和工具更丰富。建议两个都注册体验。</p>
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:8px;overflow:hidden;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);" itemprop="name">OKX支持哪些国家？</summary>
+        <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">OKX支持全球200多个国家和地区，部分国家（如美国）受限。中国大陆用户可注册使用。</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- Bottom CTA -->
+    <div style="text-align:center;">
+      <a href={WEB} target="_blank" rel="noopener noreferrer sponsored" data-placement="go_okx_bottom"
+        style="display:inline-block;padding:16px 48px;background:var(--accent-green);color:#fff;font-weight:700;font-size:16px;border-radius:12px;text-decoration:none;transition:opacity 0.15s;">
+        立即注册 OKX →
+      </a>
+      <p style="font-size:11px;color:var(--fg-muted);margin-top:12px;">
+        投资有风险，加密货币价格波动较大，请谨慎决策。
+      </p>
+    </div>
+
+  </main>
+
+  <Footer />
+</Layout>

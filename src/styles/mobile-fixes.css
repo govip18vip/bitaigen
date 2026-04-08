@@ -529,3 +529,18 @@ pre, table {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ── 27. Mobile bottom nav spacing ─────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Move floating banner above bottom nav */
+  #bnr-float > div {
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Move back-to-top button above bottom nav */
+  [data-button="back-to-top"] {
+    bottom: 72px !important;
+  }
+}

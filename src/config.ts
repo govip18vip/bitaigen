@@ -4,7 +4,7 @@ export const SITE = {
   profile: "https://bitaigen.com/about",
   desc: "Professional blockchain news platform — Bitcoin price analysis, exchange tutorials, crypto wallet security guides, DeFi protocol deep dives. 专业区块链资讯平台。",
   title: "Bitaigen",
-  ogImage: "og-crypto.jpg",
+  ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
   postPerIndex: 9,
   postPerPage: 12,

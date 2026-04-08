@@ -2,30 +2,36 @@
 import type { APIRoute } from "astro";
 
 const getRobotsTxt = (sitemapURL: URL, siteUrl: string) => `
+# ── Blocked crawlers (must appear BEFORE wildcard rules) ──
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# ── Default rules for all crawlers ──────────────────────
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /_astro/
+Disallow: /404
 Crawl-delay: 1
-
-Sitemap: ${sitemapURL.href}
-
-# ── LLMs.txt for AI engines ──────────────────────────────
-# https://llmstxt.org/
-# ${siteUrl}/llms.txt
 
 # ── Traditional search engines ───────────────────────────
 User-agent: Googlebot
 Allow: /
-Crawl-delay: 0
+Disallow: /api/
+Disallow: /_astro/
 
 User-agent: Bingbot
 Allow: /
 Crawl-delay: 1
-
-User-agent: Slurp
-Allow: /
-
-User-agent: DuckDuckBot
-Allow: /
 
 User-agent: Baiduspider
 Allow: /
@@ -34,6 +40,12 @@ Crawl-delay: 1
 User-agent: Yandex
 Allow: /
 Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
 
 # ── AI search engine crawlers (explicit permission for GEO) ─
 User-agent: GPTBot
@@ -81,24 +93,10 @@ Allow: /
 User-agent: Bytespider
 Allow: /
 
-# ── Blocked malicious crawlers ──────────────────────────
-User-agent: MJ12bot
-Disallow: /
+# ── Sitemap & LLMs.txt ─────────────────────────────────
+Sitemap: ${sitemapURL.href}
 
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-# ── Protected paths ─────────────────────────────────────
-User-agent: *
-Disallow: /api/
-Disallow: /_astro/
-Disallow: /404
+# LLMs.txt: ${siteUrl}/llms.txt
 `.trim();
 
 export const GET: APIRoute = ({ site }) => {
