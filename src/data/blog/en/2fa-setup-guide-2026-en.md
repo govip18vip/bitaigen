@@ -1,0 +1,60 @@
+---
+author: Bitaigen Research Team
+pubDatetime: 2026-03-19T10:00:00Z
+modDatetime: 2026-04-09T08:00:00Z
+title: "2FA Setup Guide 2026: Google Authenticator Tutorial"
+slug: 2fa-setup-guide-2026-en
+featured: false
+draft: false
+lang: en
+translationKey: 2fa-setup-guide
+type: guide
+tags:
+  - security
+  - docs
+description: "2FA Setup Guide: Google Authenticator Tutorial"
+---
+
+Google Authenticator Tutorial. In the crypto world, security is the most important thing.
+
+## Core Security Principles
+
+1. **Never share private keys or seed phrases**
+2. **Enable Two-Factor Authentication (2FA)**
+3. **Use strong passwords and a password manager**
+4. **Beware of phishing sites and scams**
+5. **Distribute assets across multiple storage methods**
+
+## Detailed Guide
+
+### Exchange Account Security
+
+On Binance and OKX, complete these security settings:
+
+- Google Authenticator 2FA
+- Anti-phishing code
+- Withdrawal whitelist
+- Login device management
+
+
+
+> [Sign up for Binance (code B2345)](/go/binance) | [Sign up for OKX (code B2345)](/go/okx)
+
+
+### Common Scam Identification
+
+| Scam Type | Signs | Prevention |
+|------|------|------|
+| Phishing | Similar but different domain | Use bookmarks |
+| Fake Support | Unsolicited contact asking for info | Use official channels only |
+| Airdrop Scam | Asks to connect wallet | Don't approve blindly |
+
+## FAQ
+
+### What to do if scammed?
+
+Immediately freeze exchange account, contact official support, preserve all evidence. On-chain transactions are usually irreversible.
+
+### Are exchanges safe?
+
+Major exchanges like Binance and OKX have Proof of Reserves and insurance funds, offering higher security.
