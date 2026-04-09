@@ -21,6 +21,11 @@ export default defineConfig({
 
   output: "static",
 
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: "hover",
+  },
+
   adapter: vercel({
     // Vercel ISR：SSR 页面缓存 5 分钟，过期后台刷新
     isr: {
