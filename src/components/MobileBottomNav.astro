@@ -8,11 +8,11 @@ const t = useTranslations(lang);
 const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
 
 const items = [
-  { key: "home",      href: base || "/",             label: t("bnav.home"),      match: "^/$|^/(zh-tw|en|es|pt)/?$" },
-  { key: "flash",     href: base + "/flash",         label: t("bnav.flash"),     match: "/flash" },
-  { key: "prices",    href: base + "/price",          label: t("bnav.prices"),    match: "/price" },
-  { key: "watchlist", href: base + "/price#watchlist", label: t("bnav.watchlist"), match: "#watchlist" },
-  { key: "search",    href: base + "/search",         label: t("bnav.search"),    match: "/search" },
+  { key: "home",      href: base || "/",                    label: t("bnav.home"),      match: "^/$|^/(zh-tw|en|es|pt)/?$" },
+  { key: "flash",     href: base + "/flash",                label: t("bnav.flash"),     match: "/flash" },
+  { key: "prices",    href: base + "/price",                label: t("bnav.prices"),    match: "/price" },
+  { key: "watchlist", href: "/tools/fee-calculator",        label: t("nav.tools"),      match: "/tools|/portfolio|/fear-greed" },
+  { key: "search",    href: base + "/search",               label: t("bnav.search"),    match: "/search" },
 ];
 ---
 
@@ -100,8 +100,8 @@ const items = [
   }
   .mobile-bnav-icon[data-icon="watchlist"] {
     background: currentColor;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E") center/18px no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E") center/18px no-repeat;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/%3E%3C/svg%3E") center/18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/%3E%3C/svg%3E") center/18px no-repeat;
   }
   .mobile-bnav-icon[data-icon="search"] {
     background: currentColor;
