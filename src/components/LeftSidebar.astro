@@ -23,6 +23,22 @@ const isActive = (p: string) => {
   return cleanPath.startsWith(p);
 };
 
+// Build nav groups with translated labels
+const catLabelMap: Record<string, string> = {
+  prices: "nav.prices",
+  learn: "nav.learn",
+  tools: "nav.tools",
+  defi: "cat.defi",
+};
+const catIconMap: Record<string, string> = { prices: "📊", learn: "🎓", tools: "🛠", defi: "💎" };
+
+const navGroups = TAXONOMY.slice(2).map(cat => ({
+  ...cat,
+  label: t(catLabelMap[cat.key] ?? `cat.${cat.key}`),
+  icon: catIconMap[cat.key] ?? "",
+  translatedSubs: cat.sub.map(s => ({ ...s, label: t(s.labelKey) })),
+}));
+
 ---
 
 <aside class="lsidebar" role="navigation" aria-label="主导航">
@@ -65,50 +81,38 @@ const isActive = (p: string) => {
       <span data-i18n="nav.news">{t("nav.news")}</span>
     </a>
 
-    <!-- Live Prices link -->
-    <a href={base + "/price"}
-      class:list={["lnav-item", { active: isActive("/price") }]}>
-      <span style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:12px;">📊</span>
-        <span data-i18n="nav.prices">{t("nav.prices")}</span>
-      </span>
-    </a>
-
-    <!-- 学习中心 -->
-    <a href={base + "/learn/"} class:list={["lnav-item", { active: isActive("/learn") }]}>
-      <span style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:12px;">🎓</span>
-        <span data-i18n="nav.learn">{t("nav.learn")}</span>
-      </span>
-    </a>
-
-    <!-- Taxonomy groups -->
-    {TAXONOMY.slice(2).map(cat => (
-      <div class="lnav-group" id={`group-${cat.key}`}>
-        {cat.sub.length > 0 ? (
+    <!-- Taxonomy groups: prices, learn, tools, defi -->
+    {navGroups.map(g => (
+      <div class="lnav-group" id={`group-${g.key}`}>
+        {g.translatedSubs.length > 0 ? (
           <button
-            class:list={["lnav-item lnav-toggle", { active: isActive(cat.href) }]}
-            aria-expanded={isActive(cat.href) ? "true" : "false"}
-            data-group={cat.key}
+            class:list={["lnav-item lnav-toggle", { active: isActive(g.href) }]}
+            aria-expanded={isActive(g.href) ? "true" : "false"}
+            data-group={g.key}
           >
-            <span data-i18n={`cat.${cat.key}`}>{cat.key}</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              {g.icon && <span style="font-size:12px;">{g.icon}</span>}
+              <span>{g.label}</span>
+            </span>
             <svg class="arrow" width="11" height="11" viewBox="0 0 12 12" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M4 2l4 4-4 4"/>
             </svg>
           </button>
         ) : (
-          <a href={cat.href} class:list={["lnav-item", { active: isActive(cat.href) }]}>
-            <span data-i18n={`cat.${cat.key}`}>{cat.key}</span>
+          <a href={g.href} class:list={["lnav-item", { active: isActive(g.href) }]}>
+            <span style="display:flex;align-items:center;gap:6px;">
+              {g.icon && <span style="font-size:12px;">{g.icon}</span>}
+              <span>{g.label}</span>
+            </span>
           </a>
         )}
-        {cat.sub.length > 0 && (
-          <div class:list={["lnav-sub", { open: isActive(cat.href) }]} id={`sub-${cat.key}`}>
-            {(cat.sub as readonly { key: string; labelKey: string; href: string }[]).map(sub => (
+        {g.translatedSubs.length > 0 && (
+          <div class:list={["lnav-sub", { open: isActive(g.href) }]} id={`sub-${g.key}`}>
+            {g.translatedSubs.map(sub => (
               <a href={sub.href}
-                class:list={["lnav-sub-link", { active: isActive(sub.href) }]}
-                data-i18n={sub.labelKey}>
-                {sub.key}
+                class:list={["lnav-sub-link", { active: isActive(sub.href) }]}>
+                {sub.label}
               </a>
             ))}
           </div>
