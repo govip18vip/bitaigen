@@ -140,8 +140,8 @@ const t = useTranslations(lang);
       const scrolled = -rect.top + window.innerHeight;
       const pct = scrolled / article.offsetHeight;
       if (pct >= 0.5) {
-        el.classList.add("visible");
-        el.setAttribute("aria-hidden", "false");
+        el!.classList.add("visible");
+        el!.setAttribute("aria-hidden", "false");
         shown = true;
       }
       ticking = false;

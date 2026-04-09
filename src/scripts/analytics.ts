@@ -1,15 +1,10 @@
 // src/scripts/analytics.ts
 // GA4 custom event tracking — affiliate clicks, engagement, conversions
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
 function track(event: string, params: Record<string, string | number>) {
-  if (typeof window.gtag === "function") {
-    window.gtag("event", event, params);
+  const g = (window as any).gtag;
+  if (typeof g === "function") {
+    g("event", event, params);
   }
 }
 
@@ -53,7 +48,6 @@ function initScrollDepthTracking() {
   let ticking = false;
 
   function check() {
-    const rect = article!.getBoundingClientRect();
     const articleTop = article!.offsetTop;
     const articleHeight = article!.offsetHeight;
     const scrolled = window.scrollY - articleTop + window.innerHeight;
