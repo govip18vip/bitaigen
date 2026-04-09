@@ -1055,6 +1055,7 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
 <script>
   // ── Bookmark button ──
+  import { showToast as bmToast } from "@/scripts/toast";
   import { isBookmarked, toggle as bmToggle } from "@/scripts/bookmarks";
 
   function initBookmark() {
@@ -1070,13 +1071,14 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
     updateUI();
     btn.addEventListener("click", () => {
-      bmToggle({
+      const added = bmToggle({
         title: btn.dataset.title ?? "",
         href,
         img: btn.dataset.img ?? "",
         tag: btn.dataset.tag ?? "",
       });
       updateUI();
+      bmToast(added ? "Bookmarked!" : "Bookmark removed");
     });
   }
 
@@ -1086,6 +1088,8 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
 <script>
   // ── Copy link button ──
+  import { showToast } from "@/scripts/toast";
+
   function initCopyLink() {
     const btn = document.getElementById("copy-link-btn");
     if (!btn) return;
@@ -1093,14 +1097,7 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
     btn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(window.location.href);
-        btn.classList.add("copied");
-        const span = btn.querySelector("span");
-        const orig = span?.textContent;
-        if (span) span.textContent = "Copied!";
-        setTimeout(() => {
-          btn.classList.remove("copied");
-          if (span && orig) span.textContent = orig;
-        }, 2000);
+        showToast("Link copied!");
       } catch {}
     });
   }
@@ -1141,5 +1138,17 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
 <script>
   import "@/scripts/auto-links";
+</script>
+
+<script>
+  import "@/scripts/code-copy";
+</script>
+
+<script>
+  import "@/scripts/font-size";
+</script>
+
+<script>
+  import "@/scripts/reading-mode";
 </script>
 

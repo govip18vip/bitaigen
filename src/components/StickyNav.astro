@@ -1,0 +1,91 @@
+---
+// src/components/StickyNav.astro
+// Compact sticky navbar — appears after scrolling past main header
+import { SITE } from "@/config";
+---
+
+<div id="sticky-nav" class="sticky-nav" aria-hidden="true">
+  <a href="/" class="sticky-nav-logo">{SITE.title}</a>
+  <div class="sticky-nav-actions">
+    <a href="/search" class="sticky-nav-btn" aria-label="Search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </a>
+    <a href="/price" class="sticky-nav-btn" aria-label="Prices">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </a>
+  </div>
+</div>
+
+<style>
+  .sticky-nav {
+    position: fixed;
+    top: -48px;
+    left: 0;
+    right: 0;
+    height: 44px;
+    z-index: 8500;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    transition: top 0.25s ease;
+    backdrop-filter: blur(8px);
+  }
+  .sticky-nav.visible {
+    top: 0;
+  }
+  .sticky-nav-logo {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .sticky-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sticky-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    color: var(--fg-muted);
+    text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+  }
+  .sticky-nav-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--fg);
+  }
+</style>
+
+<script>
+  function initStickyNav() {
+    const el = document.getElementById("sticky-nav");
+    if (!el) return;
+    let lastY = 0;
+    let ticking = false;
+
+    function check() {
+      const y = window.scrollY;
+      // Show after scrolling down 200px AND scrolling up
+      const show = y > 200;
+      el.classList.toggle("visible", show);
+      el.setAttribute("aria-hidden", show ? "false" : "true");
+      lastY = y;
+      ticking = false;
+    }
+
+    window.addEventListener("scroll", () => {
+      if (!ticking) { requestAnimationFrame(check); ticking = true; }
+    }, { passive: true });
+  }
+
+  initStickyNav();
+  document.addEventListener("astro:after-swap", initStickyNav);
+</script>

@@ -4,6 +4,7 @@ import { ClientRouter } from "astro:transitions";
 import { SITE } from "@/config";
 import { getLang, hreflangLinks, HTML_LANG, UI } from "@/i18n/ui";
 import MobileBottomNav from "@/components/MobileBottomNav.astro";
+import StickyNav from "@/components/StickyNav.astro";
 import "@/styles/global.css";
 import "../styles/mobile-fixes.css";
 
@@ -216,6 +217,7 @@ const socialImageURL = new URL(ogImage, Astro.url);
   <body>
     <slot />
 
+    <StickyNav />
     <MobileBottomNav />
 
     <script>
@@ -228,6 +230,10 @@ const socialImageURL = new URL(ogImage, Astro.url);
 
     <script>
       import "@/scripts/analytics.ts";
+    </script>
+
+    <script>
+      import "@/scripts/keyboard.ts";
     </script>
 
   </body>

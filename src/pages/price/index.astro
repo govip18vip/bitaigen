@@ -161,10 +161,10 @@ const itemListSchema = {
                     <div class="price-coin-sym">{coin.symbol}</div>
                   </div>
                 </div>
-                <div id={`p-${coin.id}`} class="price-val">—</div>
-                <div id={`c-${coin.id}`} class="price-change hide-mobile-sm">—</div>
-                <div id={`v-${coin.id}`} class="price-vol hide-tablet">—</div>
-                <div id={`m-${coin.id}`} class="price-mcap hide-tablet">—</div>
+                <div id={`p-${coin.id}`} class="price-val skeleton">$0.00</div>
+                <div id={`c-${coin.id}`} class="price-change hide-mobile-sm skeleton">0.00%</div>
+                <div id={`v-${coin.id}`} class="price-vol hide-tablet skeleton">$0</div>
+                <div id={`m-${coin.id}`} class="price-mcap hide-tablet skeleton">$0</div>
                 <div class="price-trade hide-mobile-sm" onclick="event.stopPropagation()">
                   <a href={`https://www.binance.com/trade/${coin.symbol}_USDT?layout=pro&ref=B2345&type=spot`}
                     target="_blank" rel="noopener noreferrer sponsored"
@@ -497,6 +497,8 @@ const itemListSchema = {
     } catch { return {}; }
   }
 
+  function unskeleton(el) { if (el) el.classList.remove("skeleton"); }
+
   async function updateAll() {
     // 优先 Orbit
     const cbMap = await fetchOrbit();
@@ -509,13 +511,14 @@ const itemListSchema = {
         const ve = document.getElementById("v-" + coinId);
         const me = document.getElementById("m-" + coinId);
         const re = document.getElementById("r-" + coinId);
-        if (pe) pe.textContent = fmtP(d.price);
+        if (pe) { pe.textContent = fmtP(d.price); unskeleton(pe); }
         if (ce) {
           ce.textContent = (d.change >= 0 ? "▲ +" : "▼ ") + Math.abs(d.change).toFixed(2) + "%";
           ce.style.color = d.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+          unskeleton(ce);
         }
-        if (ve) ve.textContent = fmt(d.vol);
-        if (me) me.textContent = fmt(d.mcap);
+        if (ve) { ve.textContent = fmt(d.vol); unskeleton(ve); }
+        if (me) { me.textContent = fmt(d.mcap); unskeleton(me); }
         if (re && d.rank) re.textContent = d.rank;
       }
       return;
