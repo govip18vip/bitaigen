@@ -95,6 +95,7 @@ Allow: /
 
 # ── Sitemap & LLMs.txt ─────────────────────────────────
 Sitemap: ${sitemapURL.href}
+Sitemap: ${siteUrl}news-sitemap.xml
 
 # LLMs.txt: ${siteUrl}/llms.txt
 `.trim();

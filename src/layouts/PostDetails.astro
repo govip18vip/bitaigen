@@ -319,6 +319,14 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
             <TranslationLinks translations={translations} />
           )}
 
+          <!-- Freshness banner — shows if updated within 30 days -->
+          {modDatetime && (Date.now() - new Date(modDatetime).getTime()) < 30 * 86400000 && (
+            <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--tag-green-bg);border-radius:4px;font-size:11px;font-weight:600;color:var(--accent-green);margin-bottom:8px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {postLang === "en" ? "Updated" : postLang === "es" ? "Actualizado" : postLang === "pt" ? "Atualizado" : "已更新"} {new Date(modDatetime).toLocaleDateString(postLang === "en" ? "en-US" : postLang === "es" ? "es-ES" : postLang === "pt" ? "pt-BR" : "zh-CN", { year: "numeric", month: "short" })}
+            </div>
+          )}
+
           <!-- Meta row: author + date -->
           <div class="pd-meta">
             <a href={`/author/${authorData.slug}/`} class="pd-author-link" itemprop="author" itemscope itemtype="https://schema.org/Person">
