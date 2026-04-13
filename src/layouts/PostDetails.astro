@@ -88,10 +88,14 @@ const t = useTranslations(postLang);
 // Author data
 const authorData = getAuthor(author ?? SITE.author);
 
-// Resolve OG image: heroImage > ogImage > auto-generated
+// Resolve OG image: heroImage > ogImage > dynamic per-post PNG
 const resolvedOgImage = (() => {
   const img = heroImage ?? ogImage;
-  if (!img) return undefined;
+  if (!img) {
+    // Dynamic OG image lives at {pathname}.png (e.g. /posts/zh-cn/foo.png)
+    if (SITE.dynamicOgImage) return `${Astro.url.pathname}.png`;
+    return undefined;
+  }
   if (typeof img === "string") return img;
   return (img as any)?.src ?? undefined;
 })();
