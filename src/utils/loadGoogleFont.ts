@@ -55,6 +55,18 @@ async function loadGoogleFonts(
       weight: 700,
       style: "bold",
     },
+    {
+      name: "Noto Sans SC",
+      font: "Noto+Sans+SC",
+      weight: 400,
+      style: "normal",
+    },
+    {
+      name: "Noto Sans SC",
+      font: "Noto+Sans+SC",
+      weight: 700,
+      style: "bold",
+    },
   ];
 
   const fonts: Array<{ name: string; data: ArrayBuffer; weight: number; style: string }> = [];
