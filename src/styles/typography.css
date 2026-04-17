@@ -115,5 +115,14 @@
     .highlighted-word {
       @apply rounded-sm border border-border px-0.5 py-px;
     }
+
+    /* Glossary auto-links — subtle underline, no color change */
+    a.glossary-link {
+      @apply text-inherit no-underline border-b border-dashed border-skin-line/60;
+      transition: border-color 0.2s;
+    }
+    a.glossary-link:hover {
+      @apply border-skin-accent text-skin-accent;
+    }
   }
 }

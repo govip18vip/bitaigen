@@ -7,6 +7,7 @@ import { toHTML } from "@portabletext/to-html";
 import NewsDetails from "@/layouts/NewsDetails.astro";
 import { sanityClient, sanityImageUrl } from "@/utils/sanity";
 import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
+import { injectGlossaryLinks } from "@/utils/glossaryLinker";
 
 const { slug } = Astro.params;
 
@@ -29,8 +30,8 @@ if (post.lang && post.lang !== "zh-CN") {
   if (langPath) return Astro.redirect(`/${langPath}/news/${slug}`, 301);
 }
 
-// Render Portable Text body → HTML
-const bodyHtml = post.body
+// Render Portable Text body → HTML + glossary auto-links
+const rawHtml = post.body
   ? toHTML(post.body, {
       components: {
         types: {
@@ -47,6 +48,7 @@ const bodyHtml = post.body
       },
     })
   : "";
+const bodyHtml = injectGlossaryLinks(rawHtml);
 
 // Fetch related posts — same language, overlapping tags, by recency
 const tagList = Array.isArray(post.tags) ? post.tags : [];

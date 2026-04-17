@@ -99,6 +99,7 @@ Allow: /
 Sitemap: ${sitemapURL.href}
 Sitemap: ${siteUrl}/sanity-sitemap.xml
 Sitemap: ${siteUrl}/news-sitemap.xml
+Sitemap: ${siteUrl}/image-sitemap.xml
 
 # LLMs.txt: ${siteUrl}/llms.txt
 `.trim();
