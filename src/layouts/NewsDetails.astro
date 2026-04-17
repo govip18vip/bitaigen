@@ -1,0 +1,664 @@
+---
+// src/layouts/NewsDetails.astro
+// ─────────────────────────────────────────────────────────────
+// Rich news-article detail layout — mirrors PostDetails.astro but sources
+// data from Sanity CMS instead of Astro content collections.
+//
+// Includes everything needed for SEO + monetization:
+//   • JSON-LD:  NewsArticle + BreadcrumbList + FAQPage
+//   • Affiliate: BinanceBanner (mid + article), BinanceFloating, ExchangeCTA sidebar
+//   • Lead capture: SubscribeForm (inline), ScrollSubscribe (sticky)
+//   • Engagement: CoinOrbit price hooks, RelatedPosts by tag overlap
+//   • Author bio card for E-E-A-T
+//   • Full breadcrumb + sidebar chrome
+// ─────────────────────────────────────────────────────────────
+
+import Layout from "./Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import BinanceFloating from "@/components/BinanceFloating.astro";
+import ExchangeCTA from "@/components/ExchangeCTA.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
+import ScrollSubscribe from "@/components/ScrollSubscribe.astro";
+import BackToTopButton from "@/components/BackToTopButton.astro";
+
+import { SITE } from "@/config";
+import { LANG_TO_PATH, useTranslations, type Lang } from "@/i18n/ui";
+import { slugifyStr } from "@/utils/slugify";
+import type { SanityPost } from "@/utils/sanity";
+import { sanityImageUrl } from "@/utils/sanity";
+
+interface RelatedItem {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  lang: string;
+  description?: string;
+  coverImage?: { asset?: { _ref: string } };
+  pubDatetime: string;
+  tags?: string[];
+}
+
+interface Props {
+  post: SanityPost;
+  bodyHtml: string;
+  related?: RelatedItem[];
+}
+
+const { post, bodyHtml, related = [] } = Astro.props;
+
+// ── Language handling ────────────────────────────────────────
+const postLang = ((post.lang as Lang) ?? "zh-CN") as Lang;
+const t = useTranslations(postLang);
+const langSeg = LANG_TO_PATH[postLang];
+const basePath = langSeg ? `/${langSeg}` : "";
+
+// ── Cover image ─────────────────────────────────────────────
+const coverUrl = post.coverImage?.asset?._ref
+  ? sanityImageUrl(post.coverImage.asset._ref, { width: 1200, format: "webp" })
+  : "";
+
+// ── Dates ───────────────────────────────────────────────────
+const pubDate = new Date(post.pubDatetime);
+const modDate = post.modDatetime ? new Date(post.modDatetime) : pubDate;
+const localeMap: Record<string, string> = {
+  "zh-CN": "zh-CN", "zh-TW": "zh-TW", "en": "en-US", "es": "es-ES", "pt": "pt-BR",
+};
+const dateLabel = pubDate.toLocaleDateString(localeMap[postLang] ?? "en-US", {
+  year: "numeric", month: "long", day: "numeric",
+});
+
+// ── Article type label ──────────────────────────────────────
+const TYPE_LABELS: Record<string, Record<string, string>> = {
+  "zh-CN": { news: "资讯", article: "深度", market: "行情", howto: "教程", guide: "指南" },
+  "zh-TW": { news: "資訊", article: "深度", market: "行情", howto: "教學", guide: "指南" },
+  "en":    { news: "News", article: "Analysis", market: "Market", howto: "Tutorial", guide: "Guide" },
+  "es":    { news: "Noticias", article: "Análisis", market: "Mercado", howto: "Tutorial", guide: "Guía" },
+  "pt":    { news: "Notícias", article: "Análise", market: "Mercado", howto: "Tutorial", guide: "Guia" },
+};
+const typeLabel = TYPE_LABELS[postLang]?.[post.articleType] ?? post.articleType;
+
+// ── Reading time (rough estimate from body length) ──────────
+const bodyText = bodyHtml.replace(/<[^>]+>/g, "");
+const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf]/.test(bodyText);
+const wordCount = isCJK ? bodyText.replace(/\s+/g, "").length : bodyText.split(/\s+/).length;
+const readingTime = Math.max(1, Math.round(wordCount / (isCJK ? 400 : 250)));
+
+// ── Author defaults ─────────────────────────────────────────
+const authorName = post.author?.name || "Bitaigen Research";
+const authorBio: string =
+  (typeof post.author?.bio === "string" ? (post.author.bio as string) : "") ||
+  (postLang === "en" ? "Bitaigen's editorial team covers blockchain news, market analysis and exchange tutorials." :
+   postLang === "es" ? "El equipo editorial de Bitaigen cubre noticias blockchain, análisis de mercado y tutoriales de exchanges." :
+   postLang === "pt" ? "A equipe editorial do Bitaigen cobre notícias blockchain, análise de mercado e tutoriais de exchanges." :
+   postLang === "zh-TW" ? "Bitaigen 編輯團隊專注於區塊鏈資訊、市場分析與交易所教學。" :
+   "Bitaigen 编辑团队专注于区块链资讯、市场分析与交易所教程。");
+
+const authorAvatar = post.author?.avatar?.asset?._ref
+  ? sanityImageUrl(post.author.avatar.asset._ref, { width: 96, height: 96 })
+  : "/favicon.svg";
+
+// ── URLs & canonical ────────────────────────────────────────
+const canonicalURL = Astro.url.href;
+const origin = Astro.url.origin;
+
+// Breadcrumb labels
+const NEWS_LABEL: Record<string, string> = {
+  "zh-CN": "资讯", "zh-TW": "資訊", "en": "News", "es": "Noticias", "pt": "Notícias",
+};
+
+// ── Structured data ────────────────────────────────────────
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": post.articleType === "news" ? "NewsArticle" : "Article",
+  "@id": `${canonicalURL}#article`,
+  headline: post.title,
+  description: post.description,
+  ...(coverUrl && {
+    image: {
+      "@type": "ImageObject",
+      url: coverUrl,
+      width: 1200,
+      height: 630,
+    },
+  }),
+  datePublished: pubDate.toISOString(),
+  dateModified: modDate.toISOString(),
+  author: {
+    "@type": "Person",
+    name: authorName,
+    ...(post.author?.twitter && { sameAs: [post.author.twitter] }),
+  },
+  publisher: {
+    "@type": "Organization",
+    "@id": `${origin}/#organization`,
+    name: SITE.title,
+    url: SITE.website,
+    logo: {
+      "@type": "ImageObject",
+      url: `${origin}/favicon.svg`,
+      width: 64,
+      height: 64,
+    },
+  },
+  mainEntityOfPage: {
+    "@type": "WebPage",
+    "@id": `${canonicalURL}#webpage`,
+  },
+  isPartOf: { "@id": `${origin}/#website` },
+  inLanguage: postLang,
+  ...(post.tags?.length && { keywords: post.tags.join(", ") }),
+  ...(post.sourceUrl && post.sourceName && {
+    citation: {
+      "@type": "CreativeWork",
+      url: post.sourceUrl,
+      name: post.sourceName,
+    },
+  }),
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: t("nav.home"), item: `${origin}${basePath || "/"}` },
+    { "@type": "ListItem", position: 2, name: NEWS_LABEL[postLang] ?? "News", item: `${origin}${basePath}/news` },
+    { "@type": "ListItem", position: 3, name: post.title, item: canonicalURL },
+  ],
+};
+
+const faqSchema = post.faqs && post.faqs.length > 0 ? {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: post.faqs.map(f => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+} : null;
+
+// ── i18n strings for chrome ────────────────────────────────
+const STR: Record<string, Record<string, string>> = {
+  "zh-CN": {
+    readtime: "分钟阅读",
+    source:   "原文来源：",
+    disclaimer: "⚠️ 风险提示：加密货币价格波动极大，本文不构成任何投资建议，请理性投资，风险自担。",
+    faq:      "常见问题",
+    aboutAuthor: "关于作者",
+    joinTg:   "加入 Telegram 社区",
+    discuss:  "讨论本文",
+    related:  "相关文章",
+  },
+  "zh-TW": {
+    readtime: "分鐘閱讀",
+    source:   "原文來源：",
+    disclaimer: "⚠️ 風險提示：加密貨幣價格波動極大，本文不構成任何投資建議，請理性投資，風險自擔。",
+    faq:      "常見問題",
+    aboutAuthor: "關於作者",
+    joinTg:   "加入 Telegram 社群",
+    discuss:  "討論本文",
+    related:  "相關文章",
+  },
+  "en": {
+    readtime: "min read",
+    source:   "Source: ",
+    disclaimer: "⚠️ Risk disclaimer: Crypto prices are highly volatile. This article is not investment advice. Invest responsibly at your own risk.",
+    faq:      "Frequently Asked Questions",
+    aboutAuthor: "About the Author",
+    joinTg:   "Join our Telegram",
+    discuss:  "Discuss this article",
+    related:  "Related Articles",
+  },
+  "es": {
+    readtime: "min de lectura",
+    source:   "Fuente: ",
+    disclaimer: "⚠️ Aviso de riesgo: Los precios de las criptomonedas son muy volátiles. Este artículo no es asesoramiento de inversión.",
+    faq:      "Preguntas frecuentes",
+    aboutAuthor: "Sobre el autor",
+    joinTg:   "Únete a nuestro Telegram",
+    discuss:  "Discutir este artículo",
+    related:  "Artículos relacionados",
+  },
+  "pt": {
+    readtime: "min de leitura",
+    source:   "Fonte: ",
+    disclaimer: "⚠️ Aviso de risco: Os preços das criptomoedas são muito voláteis. Este artigo não é aconselhamento de investimento.",
+    faq:      "Perguntas frequentes",
+    aboutAuthor: "Sobre o autor",
+    joinTg:   "Junte-se ao nosso Telegram",
+    discuss:  "Discutir este artigo",
+    related:  "Artigos relacionados",
+  },
+};
+const s = STR[postLang] ?? STR["zh-CN"];
+
+// Title for <head>
+const pageTitle = `${post.title} | ${SITE.title}`;
+---
+
+<Layout
+  title={pageTitle}
+  description={post.description}
+  keywords={post.tags?.join(", ")}
+  ogImage={coverUrl || undefined}
+  ogType="article"
+  canonicalURL={canonicalURL}
+  pubDatetime={pubDate}
+  modDatetime={modDate}
+  articleTags={post.tags}
+  articleSection={typeLabel}
+  scrollSmooth
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    {faqSchema && (
+      <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+    )}
+  </Fragment>
+
+  <div id="reading-progress" aria-hidden="true"></div>
+
+  <Header />
+
+  <div class="site-outer">
+    <LeftSidebar currentLang={postLang} />
+
+    <main class="main-col nd-col" id="main-content">
+      <!-- Breadcrumb -->
+      <nav class="nd-breadcrumb" aria-label="breadcrumb">
+        <a href={basePath || "/"}>{t("nav.home")}</a>
+        <span aria-hidden="true">›</span>
+        <a href={`${basePath}/news`}>{NEWS_LABEL[postLang] ?? "News"}</a>
+        <span aria-hidden="true">›</span>
+        <span class="nd-breadcrumb-current">{post.title.length > 30 ? post.title.slice(0, 30) + "…" : post.title}</span>
+      </nav>
+
+      <div class="nd-layout">
+        <div class="nd-article-col">
+          <!-- Hero -->
+          {coverUrl && (
+            <div class="nd-hero-img">
+              <img
+                src={coverUrl}
+                alt={post.title}
+                width="1200"
+                height="630"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+              />
+            </div>
+          )}
+
+          <!-- Tags -->
+          {(post.tags?.length ?? 0) > 0 && (
+            <div class="nd-tags">
+              {post.articleType && (
+                <span class="nd-type-badge">{typeLabel}</span>
+              )}
+              {post.tags!.map(tag => (
+                <a href={`${basePath}/tags/${slugifyStr(tag)}`} class="nd-tag">#{tag}</a>
+              ))}
+            </div>
+          )}
+
+          <!-- Title -->
+          <h1 class="nd-title" itemprop="headline">{post.title}</h1>
+
+          <!-- Meta -->
+          <div class="nd-meta">
+            <span class="nd-author">
+              <img src={authorAvatar} alt={authorName} width="24" height="24" class="nd-author-avatar" onerror="this.style.display='none'" />
+              {authorName}
+            </span>
+            <time datetime={post.pubDatetime}>{dateLabel}</time>
+            <span class="nd-readtime">{readingTime} {s.readtime}</span>
+          </div>
+
+          <!-- Description -->
+          {post.description && (
+            <p class="nd-description">{post.description}</p>
+          )}
+
+          <!-- Article body -->
+          <article id="article" class="app-prose nd-prose" itemprop="articleBody" data-pagefind-body set:html={bodyHtml} />
+
+          <!-- Mid banner (affiliate) -->
+          <div class="nd-banner-mid">
+            <BinanceBanner variant="mid" lang={postLang} />
+          </div>
+
+          <!-- FAQ -->
+          {post.faqs && post.faqs.length > 0 && (
+            <section class="nd-faq" itemscope itemtype="https://schema.org/FAQPage">
+              <h2 class="nd-section-title">{s.faq}</h2>
+              {post.faqs.map(faq => (
+                <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+                  <summary itemprop="name">{faq.q}</summary>
+                  <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+                    <p itemprop="text">{faq.a}</p>
+                  </div>
+                </details>
+              ))}
+            </section>
+          )}
+
+          <!-- Source -->
+          {post.sourceUrl && (
+            <p class="nd-source">
+              {s.source}
+              <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
+                {post.sourceName || post.sourceUrl}
+              </a>
+            </p>
+          )}
+
+          <!-- Author bio -->
+          <div class="nd-author-bio">
+            <img src={authorAvatar} alt={authorName} width="48" height="48" class="nd-author-bio-avatar" onerror="this.style.display='none'" />
+            <div class="nd-author-bio-info">
+              <div class="nd-author-bio-head">{s.aboutAuthor}</div>
+              <div class="nd-author-bio-name">{authorName}</div>
+              <p class="nd-author-bio-text">{authorBio}</p>
+            </div>
+          </div>
+
+          <!-- Community CTA -->
+          <div class="nd-community-cta">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;color:var(--accent)" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+            <div>
+              <strong>{s.joinTg}</strong>
+              <span>{s.discuss}</span>
+            </div>
+            <a href={SITE.telegram} target="_blank" rel="noopener noreferrer" class="nd-community-btn">Telegram →</a>
+          </div>
+
+          <!-- Article affiliate banner -->
+          <div class="nd-banner-article">
+            <BinanceBanner variant="article" lang={postLang} />
+          </div>
+
+          <!-- Subscribe inline -->
+          <div class="nd-subscribe-card">
+            <SubscribeForm variant="full" lang={postLang} />
+          </div>
+
+          <!-- Disclaimer -->
+          <div class="nd-disclaimer">{s.disclaimer}</div>
+
+          <!-- Related posts -->
+          {related.length > 0 && (
+            <section class="nd-related" aria-label={s.related}>
+              <h2 class="nd-section-title">{s.related}</h2>
+              <div class="nd-related-grid">
+                {related.slice(0, 4).map(r => {
+                  const rCover = r.coverImage?.asset?._ref
+                    ? sanityImageUrl(r.coverImage.asset._ref, { width: 320, format: "webp" })
+                    : "";
+                  return (
+                    <a class="nd-related-card" href={`${basePath}/news/${r.slug.current}`}>
+                      {rCover && <img src={rCover} alt={r.title} width="320" height="180" loading="lazy" decoding="async" class="nd-related-img" />}
+                      <div class="nd-related-body">
+                        <h3>{r.title}</h3>
+                        {r.description && <p>{r.description}</p>}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+        </div>
+
+        <!-- Right: sidebar with affiliate CTA -->
+        <aside class="nd-sidebar" aria-label="Sidebar">
+          <div class="nd-sticky">
+            <ExchangeCTA variant="sidebar" />
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- CoinOrbit hooks: auto-inject live price badges -->
+  <script is:inline src="https://orbit.biyijia.com/widget.js" data-mode="hooks" data-sidebar="true"></script>
+
+  <ScrollSubscribe />
+  <BinanceFloating />
+  <BackToTopButton />
+  <Footer />
+</Layout>
+
+<style>
+  .nd-col { padding-bottom: 40px; }
+
+  .nd-breadcrumb {
+    padding: 12px 20px 0;
+    font-size: 13px;
+    color: var(--fg-muted);
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .nd-breadcrumb::-webkit-scrollbar { display: none; }
+  .nd-breadcrumb a { color: var(--fg-muted); text-decoration: none; transition: color 0.12s; }
+  .nd-breadcrumb a:hover { color: var(--accent); }
+  .nd-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+  .nd-breadcrumb-current { color: var(--fg); }
+
+  .nd-layout {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 32px;
+    padding: 0 20px;
+    align-items: start;
+  }
+  .nd-article-col { min-width: 0; }
+
+  .nd-hero-img {
+    margin: 16px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .nd-hero-img img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+  }
+
+  .nd-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .nd-type-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+  }
+  .nd-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    background: var(--tag-orange-bg);
+    color: var(--tag-orange);
+    transition: opacity 0.12s;
+  }
+  .nd-tag:hover { opacity: 0.8; }
+
+  .nd-title {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 800;
+    line-height: 1.3;
+    color: var(--fg);
+    margin: 0 0 12px;
+    word-break: break-word;
+    letter-spacing: -0.01em;
+  }
+
+  .nd-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--fg-muted);
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nd-author { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--fg); }
+  .nd-author-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); }
+  .nd-readtime { font-size: 12px; color: var(--fg-light); }
+
+  .nd-description {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--fg-muted);
+    margin: 0 0 18px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .nd-prose { margin-top: 12px; }
+
+  .nd-banner-mid, .nd-banner-article { margin: 28px 0; }
+
+  .nd-faq {
+    margin: 32px 0;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .nd-faq details {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .nd-faq details:last-child { border-bottom: none; }
+  .nd-faq summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--fg);
+    padding-right: 20px;
+  }
+  .nd-faq p { margin: 8px 0 0; color: var(--fg-muted); line-height: 1.7; font-size: 14px; }
+
+  .nd-section-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--fg);
+    margin: 0 0 16px;
+  }
+
+  .nd-source {
+    margin: 24px 0;
+    font-size: 12.5px;
+    color: var(--fg-muted);
+  }
+  .nd-source a { color: var(--accent); text-decoration: none; }
+  .nd-source a:hover { text-decoration: underline; }
+
+  .nd-author-bio {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    margin: 32px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .nd-author-bio-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--border); }
+  .nd-author-bio-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-light); margin-bottom: 4px; }
+  .nd-author-bio-name { font-size: 15px; font-weight: 700; color: var(--fg); margin-bottom: 4px; }
+  .nd-author-bio-text { font-size: 13.5px; line-height: 1.6; color: var(--fg-muted); margin: 0; }
+
+  .nd-community-cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    margin: 24px 0;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+    border-radius: 10px;
+  }
+  .nd-community-cta > div { flex: 1; }
+  .nd-community-cta strong { display: block; font-size: 14px; color: var(--fg); margin-bottom: 2px; }
+  .nd-community-cta span { font-size: 12.5px; color: var(--fg-muted); }
+  .nd-community-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .nd-subscribe-card {
+    margin: 28px 0;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .nd-disclaimer {
+    margin: 24px 0;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--fg-muted);
+    background: var(--bg-page);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    line-height: 1.6;
+  }
+
+  /* Related */
+  .nd-related { margin: 40px 0 20px; }
+  .nd-related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .nd-related-card {
+    display: block;
+    padding: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--fg);
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .nd-related-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .nd-related-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .nd-related-body { padding: 12px 14px; }
+  .nd-related-body h3 { font-size: 14px; font-weight: 700; line-height: 1.4; margin: 0 0 6px; color: var(--fg); }
+  .nd-related-body p { font-size: 12.5px; color: var(--fg-muted); margin: 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Sidebar */
+  .nd-sidebar { width: 240px; }
+  .nd-sticky { position: sticky; top: 80px; }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .nd-layout { grid-template-columns: 1fr; }
+    .nd-sidebar { display: none; }
+  }
+  @media (max-width: 640px) {
+    .nd-related-grid { grid-template-columns: 1fr; }
+    .nd-community-cta { flex-wrap: wrap; }
+    .nd-community-cta > div { flex: 1 1 100%; margin-bottom: 8px; }
+  }
+</style>

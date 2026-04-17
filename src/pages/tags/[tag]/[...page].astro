@@ -69,30 +69,53 @@ if (pageNum < 1 || (pageNum > lastPage && total > 0)) {
 const pagePosts = tagged.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 const prevUrl = pageNum > 1 ? `/tags/${tag}/${pageNum - 1 === 1 ? "" : pageNum - 1}` : null;
 const nextUrl = pageNum < lastPage ? `/tags/${tag}/${pageNum + 1}` : null;
+
+// ── JSON-LD：CollectionPage + Breadcrumb + ItemList ───────
+const siteUrl = SITE.website.replace(/\/$/, "");
+const pageUrl = `${siteUrl}/tags/${encodeURIComponent(tag)}${pageNum > 1 ? `/${pageNum}` : ""}`;
+
+const collectionSchema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "@id": `${pageUrl}#webpage`,
+  name: `${decodedTag} — ${SITE.title}`,
+  description: `${decodedTag}相关的全部文章`,
+  url: pageUrl,
+  isPartOf: { "@id": `${siteUrl}/#website` },
+  inLanguage: "zh-CN",
+  numberOfItems: total,
+  mainEntity: {
+    "@type": "ItemList",
+    numberOfItems: pagePosts.length,
+    itemListElement: pagePosts.map((p, i) => ({
+      "@type": "ListItem",
+      position: (pageNum - 1) * PAGE_SIZE + i + 1,
+      url: p.href?.startsWith("http") ? p.href : `${siteUrl}${p.href}`,
+      name: p.title,
+    })),
+  },
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "首页", item: siteUrl + "/" },
+    { "@type": "ListItem", position: 2, name: "标签", item: `${siteUrl}/tags` },
+    { "@type": "ListItem", position: 3, name: `#${decodedTag}`, item: pageUrl },
+  ],
+};
 ---
 
 <Layout
   title={`${decodedTag} — 最新资讯与深度分析 | ${SITE.title}`}
   description={`${decodedTag}相关的全部 ${total} 篇文章 — 涵盖行情分析、使用教程、安全指南等加密货币与区块链专业内容。`}
+  paginationPrev={prevUrl ?? undefined}
+  paginationNext={nextUrl ?? undefined}
 >
   <Fragment slot="head">
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      name: `${decodedTag} — ${SITE.title}`,
-      description: `${decodedTag}相关的全部文章`,
-      url: `${SITE.website}tags/${tag}/`,
-      isPartOf: { "@id": `${SITE.website}#website` },
-      numberOfItems: total,
-      breadcrumb: {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
-          { "@type": "ListItem", position: 2, name: "标签", item: `${SITE.website}tags/` },
-          { "@type": "ListItem", position: 3, name: decodedTag, item: `${SITE.website}tags/${tag}/` },
-        ],
-      },
-    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(collectionSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
   </Fragment>
   <Header />
 

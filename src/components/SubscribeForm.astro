@@ -27,27 +27,30 @@ const uid = Math.random().toString(36).slice(2, 8);
     </div>
   )}
 
-  <form class="sub-form" novalidate>
+  <form class="sub-form" novalidate aria-describedby={`sub-msg-${uid}`}>
     <!-- Honeypot field — hidden from humans, traps bots -->
-    <input type="text" name="website" autocomplete="off" tabindex="-1" class="sub-hp" aria-hidden="true" />
+    <label for={`sub-hp-${uid}`} class="sr-only">Leave this field empty</label>
+    <input id={`sub-hp-${uid}`} type="text" name="website" autocomplete="off" tabindex="-1" class="sub-hp" aria-hidden="true" />
+
+    <label for={`sub-email-${uid}`} class="sr-only">{t("subscribe.placeholder")}</label>
     <input
+      id={`sub-email-${uid}`}
       type="email"
       name="email"
       autocomplete="email"
       class="sub-input"
       placeholder={t("subscribe.placeholder")}
       required
-      aria-label={t("subscribe.placeholder")}
     />
     <button type="submit" class="sub-btn">
       <span class="sub-btn-text">{t("subscribe.btn")}</span>
-      <svg class="sub-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <svg class="sub-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
       </svg>
     </button>
   </form>
 
-  <div class="sub-msg" aria-live="polite"></div>
+  <div class="sub-msg" id={`sub-msg-${uid}`} role="status" aria-live="polite"></div>
 
   {variant === "full" && (
     <p class="sub-privacy">🔒 {t("subscribe.privacy")}</p>
@@ -241,9 +244,19 @@ function initSubscribeForm(wrap: HTMLElement) {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.success) {
-        setMsg(getMsg("subscribe.success", "✓ 订阅成功！感谢关注"), "success");
+        // Double opt-in flow: 202 + pending:true means confirmation email sent.
+        // Back-compat: some deployments may still return 200 { success: true }
+        // without `pending` — show generic success in that case.
+        const pending = data.pending === true || res.status === 202;
+        const key = pending ? "subscribe.pending" : "subscribe.success";
+        const fallback = pending
+          ? "✓ 请查收邮箱确认订阅"
+          : "✓ 订阅成功！感谢关注";
+        setMsg(getMsg(key, fallback), "success");
         input.value = "";
         form.style.display = "none";
+      } else if (res.status === 429) {
+        setMsg(getMsg("subscribe.rate", "请求过于频繁，请稍后再试"), "error");
       } else {
         const errKey = data.error === "invalid_email" ? "subscribe.invalid" : "subscribe.error";
         setMsg(getMsg(errKey, "订阅失败，请稍后重试"), "error");

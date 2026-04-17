@@ -32,6 +32,16 @@ interface ImportMetaEnv {
   readonly RESEND_AUDIENCE_ID?: string;
   /** Verified sender email address (requires domain verification in Resend) */
   readonly RESEND_FROM_EMAIL?: string;
+  /** HMAC secret for confirm/unsubscribe tokens — 32+ random chars. MUST be set in production. */
+  readonly SUBSCRIBE_TOKEN_SECRET?: string;
+
+  // ── Rate Limiting (Upstash Redis, optional) ────────
+  /** Upstash Redis REST URL — if set, rate limit will persist across restarts */
+  readonly UPSTASH_REDIS_REST_URL?: string;
+  readonly UPSTASH_REDIS_REST_TOKEN?: string;
+
+  // ── Site verification (extra) ─────────────────────
+  readonly PUBLIC_YANDEX_SITE_VERIFICATION?: string;
 }
 
 interface ImportMeta {

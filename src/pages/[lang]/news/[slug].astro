@@ -1,36 +1,28 @@
 ---
-// src/pages/[lang]/news/[slug].astro
-// 非默认语言新闻详情页，如 /en/news/[slug]
+// src/pages/[lang]/news/[slug].astro — multi-lang news detail page
+// SSR/ISR via NewsDetails layout (full SEO + affiliate hooks).
 export const prerender = false;
 
 import { toHTML } from "@portabletext/to-html";
-import Layout from "@/layouts/Layout.astro";
-import Header from "@/components/Header.astro";
-import Footer from "@/components/Footer.astro";
+import NewsDetails from "@/layouts/NewsDetails.astro";
 import { sanityClient, sanityImageUrl } from "@/utils/sanity";
-import { SITE } from "@/config";
-import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
+import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
 
 const { lang: langPath, slug } = Astro.params;
 const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
-const basePath = `/${LANG_TO_PATH[lang]}`;
 
 const post = await sanityClient.fetch(`
   *[_type == "btgPost" && slug.current == $slug && lang == $lang && draft != true][0] {
     _id, title, slug, lang, articleType, description,
     coverImage, body, pubDatetime, modDatetime,
     tags, faqs, sourceUrl, sourceName,
-    "author": author->{ name, bio, avatar }
+    "author": author->{ name, bio, avatar, twitter }
   }
 `, { slug, lang });
 
 if (!post) {
   return Astro.redirect("/404");
 }
-
-const coverUrl = post.coverImage?.asset?._ref
-  ? sanityImageUrl(post.coverImage.asset._ref, { width: 1200, format: "webp" })
-  : "";
 
 const bodyHtml = post.body
   ? toHTML(post.body, {
@@ -41,120 +33,27 @@ const bodyHtml = post.body
               ? sanityImageUrl(value.asset._ref, { width: 800 })
               : "";
             const alt = value?.alt || post.title;
-            return url ? `<figure><img src="${url}" alt="${alt}" loading="lazy" /></figure>` : "";
+            return url
+              ? `<figure><img src="${url}" alt="${alt}" loading="lazy" decoding="async" /></figure>`
+              : "";
           },
         },
       },
     })
   : "";
 
-const pubDate = new Date(post.pubDatetime).toLocaleDateString("en-US", {
-  year: "numeric", month: "long", day: "numeric",
-});
-
-const typeLabel: Record<string, string> = {
-  news: "News", article: "Analysis", market: "Market", howto: "Tutorial", guide: "Guide",
-};
+const tagList = Array.isArray(post.tags) ? post.tags : [];
+const related = tagList.length > 0
+  ? await sanityClient.fetch(
+      `*[_type == "btgPost" && draft != true && lang == $lang
+         && slug.current != $slug
+         && count((tags[])[@ in $tags]) > 0
+       ] | order(pubDatetime desc) [0...4] {
+        _id, title, slug, lang, description, coverImage, pubDatetime, tags
+      }`,
+      { lang, slug, tags: tagList },
+    )
+  : [];
 ---
 
-<Layout
-  title={`${post.title} | ${SITE.title}`}
-  description={post.description}
-  ogImage={coverUrl || SITE.ogImage}
->
-  <Header />
-
-  <main class="mx-auto max-w-3xl px-4 py-8">
-    <nav class="mb-4 text-sm text-skin-muted">
-      <a href={basePath} class="hover:underline">Home</a>
-      <span class="mx-2">/</span>
-      <a href={`${basePath}/flash`} class="hover:underline">News</a>
-      <span class="mx-2">/</span>
-      <span>{post.title.slice(0, 30)}...</span>
-    </nav>
-
-    <article>
-      {coverUrl && (
-        <img
-          src={coverUrl}
-          alt={post.title}
-          class="mb-6 w-full rounded-lg object-cover"
-          style="max-height:400px"
-          loading="eager"
-        />
-      )}
-
-      <div class="mb-3 flex flex-wrap gap-2">
-        {post.articleType && (
-          <span class="rounded bg-skin-accent/10 px-2 py-0.5 text-xs text-skin-accent font-medium">
-            {typeLabel[post.articleType] || post.articleType}
-          </span>
-        )}
-        {(post.tags || []).map((tag: string) => (
-          <a
-            href={`${basePath}/tags/${tag}`}
-            class="rounded bg-skin-fill px-2 py-0.5 text-xs text-skin-muted hover:text-skin-accent"
-          >
-            #{tag}
-          </a>
-        ))}
-      </div>
-
-      <h1 class="mb-3 text-2xl font-bold leading-tight text-skin-base sm:text-3xl">
-        {post.title}
-      </h1>
-
-      <p class="mb-6 text-base text-skin-muted">{post.description}</p>
-
-      <div class="mb-6 flex items-center gap-4 text-sm text-skin-muted border-b border-skin-line pb-4">
-        <span>{post.author?.name || "Bitaigen Research"}</span>
-        <span>·</span>
-        <time datetime={post.pubDatetime}>{pubDate}</time>
-        {post.sourceName && (
-          <>
-            <span>·</span>
-            <span>Source: {post.sourceName}</span>
-          </>
-        )}
-      </div>
-
-      <div
-        class="prose prose-sm sm:prose max-w-none text-skin-base
-               prose-headings:text-skin-base prose-a:text-skin-accent
-               prose-blockquote:border-skin-accent prose-blockquote:text-skin-muted
-               prose-strong:text-skin-base prose-code:text-skin-accent"
-        set:html={bodyHtml}
-      />
-
-      {post.faqs && post.faqs.length > 0 && (
-        <section class="mt-10">
-          <h2 class="mb-4 text-xl font-bold text-skin-base">FAQ</h2>
-          <div class="space-y-4">
-            {post.faqs.map((faq: { q: string; a: string }) => (
-              <details class="rounded-lg border border-skin-line p-4">
-                <summary class="cursor-pointer font-medium text-skin-base">{faq.q}</summary>
-                <p class="mt-2 text-sm text-skin-muted">{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {post.sourceUrl && (
-        <p class="mt-8 text-xs text-skin-muted">
-          Original source:
-          <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
-             class="hover:underline text-skin-accent">
-            {post.sourceName || post.sourceUrl}
-          </a>
-        </p>
-      )}
-
-      <div class="mt-8 rounded-lg bg-skin-fill p-4 text-xs text-skin-muted border border-skin-line">
-        ⚠️ Risk disclaimer: Crypto prices are highly volatile. This is not investment advice. Invest at your own risk.
-      </div>
-    </article>
-  </main>
-
-  <Footer />
-</Layout>
+<NewsDetails post={post} bodyHtml={bodyHtml} related={related} />

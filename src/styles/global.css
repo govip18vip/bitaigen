@@ -101,12 +101,56 @@ html[data-theme="dark"] {
     outline-offset: 2px;
     outline-color: var(--accent);
   }
-  a:focus-visible, button:focus-visible {
-    outline: 2px dashed var(--accent);
+  a:focus-visible, button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible,
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
+    /* Ensure contrast on dark/light both — add halo */
+    box-shadow: 0 0 0 4px rgba(247, 147, 26, 0.25);
+    border-radius: 3px;
   }
   button:not(:disabled) { cursor: pointer; }
   img { max-width: 100%; }
+}
+
+/* =====================================================
+   A11Y — skip link
+   ===================================================== */
+.skip-to-content {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 99999;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transform: translateY(-200%);
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.skip-to-content:focus,
+.skip-to-content:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* A11Y — screen-reader only live-region for toast announcements */
+.sr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* =====================================================

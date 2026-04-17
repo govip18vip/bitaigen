@@ -1,0 +1,101 @@
+---
+// src/pages/subscribe/error.astro
+// Shown when subscribe/confirm/unsubscribe fail (bad token, expired, etc.).
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import { SITE } from "@/config";
+import { getLang } from "@/i18n/ui";
+
+export const prerender = false;
+
+const lang = getLang(Astro.url);
+const reason = Astro.url.searchParams.get("reason") ?? "invalid";
+
+const REASON_MAP: Record<string, Record<string, string>> = {
+  "zh-CN": {
+    expired:       "该确认链接已过期（24 小时内有效）。",
+    bad_signature: "该链接已失效或被篡改。",
+    malformed:     "链接格式不正确。",
+    missing_token: "链接缺少必要信息。",
+    wrong_type:    "链接类型不匹配。",
+    rate_limited:  "操作过于频繁，请稍后再试。",
+    not_configured:"订阅服务暂未开通。",
+    invalid:       "链接无效。",
+  },
+  "zh-TW": {
+    expired:       "該確認連結已過期（24 小時內有效）。",
+    bad_signature: "該連結已失效或被竄改。",
+    malformed:     "連結格式不正確。",
+    missing_token: "連結缺少必要資訊。",
+    wrong_type:    "連結類型不匹配。",
+    rate_limited:  "操作過於頻繁，請稍後再試。",
+    not_configured:"訂閱服務暫未開通。",
+    invalid:       "連結無效。",
+  },
+  "en": {
+    expired:       "This confirmation link has expired (valid for 24 hours).",
+    bad_signature: "This link is invalid or has been tampered with.",
+    malformed:     "Link format is incorrect.",
+    missing_token: "Link is missing required information.",
+    wrong_type:    "Link type does not match.",
+    rate_limited:  "Too many attempts — please try again later.",
+    not_configured:"Subscription service is not configured.",
+    invalid:       "Invalid link.",
+  },
+  "es": {
+    expired:       "Este enlace de confirmación ha caducado (válido por 24 horas).",
+    bad_signature: "Este enlace no es válido o ha sido alterado.",
+    malformed:     "Formato de enlace incorrecto.",
+    missing_token: "Falta información en el enlace.",
+    wrong_type:    "El tipo de enlace no coincide.",
+    rate_limited:  "Demasiados intentos — inténtalo más tarde.",
+    not_configured:"Servicio de suscripción no configurado.",
+    invalid:       "Enlace no válido.",
+  },
+  "pt": {
+    expired:       "Este link de confirmação expirou (válido por 24 horas).",
+    bad_signature: "Este link é inválido ou foi adulterado.",
+    malformed:     "Formato de link incorreto.",
+    missing_token: "O link não contém as informações necessárias.",
+    wrong_type:    "Tipo de link não corresponde.",
+    rate_limited:  "Muitas tentativas — tente novamente mais tarde.",
+    not_configured:"Serviço de inscrição não configurado.",
+    invalid:       "Link inválido.",
+  },
+};
+
+const TITLE: Record<string, { title: string; h1: string; home: string; retry: string }> = {
+  "zh-CN": { title: "订阅链接出错", h1: "😕 链接无效或已过期", home: "返回首页", retry: "重新订阅" },
+  "zh-TW": { title: "訂閱連結出錯", h1: "😕 連結無效或已過期", home: "返回首頁", retry: "重新訂閱" },
+  "en":    { title: "Subscription link error", h1: "😕 Link invalid or expired", home: "Back to home", retry: "Subscribe again" },
+  "es":    { title: "Error en el enlace", h1: "😕 Enlace no válido o caducado", home: "Volver al inicio", retry: "Suscribirse de nuevo" },
+  "pt":    { title: "Erro no link", h1: "😕 Link inválido ou expirado", home: "Voltar ao início", retry: "Assinar novamente" },
+};
+
+const c = TITLE[lang] ?? TITLE["zh-CN"];
+const reasonText = REASON_MAP[lang]?.[reason] ?? REASON_MAP[lang]?.["invalid"] ?? "Invalid link.";
+---
+
+<Layout
+  title={`${c.title} | ${SITE.title}`}
+  description={reasonText}
+  noindex={true}
+>
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+    <main class="main-col" style="padding:60px 20px;" id="main-content">
+      <div style="max-width:560px;margin:0 auto;text-align:center;">
+        <h1 style="font-size:28px;font-weight:800;color:var(--fg);margin:0 0 16px;line-height:1.3;">{c.h1}</h1>
+        <p style="font-size:16px;color:var(--fg-muted);line-height:1.7;margin:0 0 32px;">{reasonText}</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <a href="/" style="display:inline-block;padding:12px 28px;background:var(--bg-card);color:var(--fg);border:1px solid var(--border);border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">{c.home}</a>
+          <a href="/#subscribe" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">{c.retry}</a>
+        </div>
+      </div>
+    </main>
+  </div>
+  <Footer />
+</Layout>

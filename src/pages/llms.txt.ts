@@ -90,20 +90,20 @@ These links contain referral relationships but do not affect content objectivity
 ## Page Index
 
 ### Chinese Content
-- ${siteUrl}/posts/ — All Chinese articles
+- ${siteUrl}/posts — All Chinese articles
 - ${siteUrl}/price/btc — Bitcoin real-time price
 - ${siteUrl}/price/eth — Ethereum real-time price
-- ${siteUrl}/price/ — Crypto market overview
-- ${siteUrl}/tags/btc/ — Bitcoin topic
-- ${siteUrl}/tags/docs/ — Exchange tutorials
-- ${siteUrl}/tags/wallet/ — Wallet security
-- ${siteUrl}/tags/beginner/ — Beginner guides
+- ${siteUrl}/price — Crypto market overview
+- ${siteUrl}/tags/btc — Bitcoin topic
+- ${siteUrl}/tags/docs — Exchange tutorials
+- ${siteUrl}/tags/wallet — Wallet security
+- ${siteUrl}/tags/beginner — Beginner guides
 
 ### Multilingual Content
-- ${siteUrl}/en/posts/ — English articles
-- ${siteUrl}/zh-tw/posts/ — 繁體中文
-- ${siteUrl}/es/posts/ — Español
-- ${siteUrl}/pt/posts/ — Português
+- ${siteUrl}/en/posts — English articles
+- ${siteUrl}/zh-tw/posts — 繁體中文
+- ${siteUrl}/es/posts — Español
+- ${siteUrl}/pt/posts — Português
 
 ## Technical SEO
 - Sitemap: ${siteUrl}/sitemap-index.xml

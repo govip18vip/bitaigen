@@ -122,11 +122,47 @@ const faqSchema = {
     acceptedAnswer: { "@type": "Answer", text: f.a },
   })),
 };
+
+// FinancialProduct + Cryptocurrency metadata — helps Google understand
+// this page is about a tradable digital asset, improves rich results eligibility.
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": ["Product", "FinancialProduct"],
+  "@id": `${siteUrl}/coin/${coinSymbol.toLowerCase()}/#product`,
+  name: `${coin.name[lang]} (${coinSymbol})`,
+  alternateName: coinSymbol,
+  description: coin.description[lang],
+  category: "Cryptocurrency",
+  url: `${siteUrl}/coin/${coinSymbol.toLowerCase()}`,
+  ...(coin.emoji && {
+    image: `${siteUrl}/coins/${coinSymbol.toLowerCase()}.png`,
+  }),
+  ...(coin.officialWebsite && {
+    sameAs: [coin.officialWebsite, coin.twitter, coin.github].filter(Boolean),
+  }),
+  brand: {
+    "@type": "Brand",
+    name: coin.name[lang],
+  },
+  provider: {
+    "@type": "Organization",
+    name: "Binance",
+    url: "https://www.binance.com",
+  },
+  // offers 占位：由客户端 JS 在价格加载后动态补 priceCurrency/price 到 window.__product.
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: `https://www.binance.com/trade/${coinSymbol}_USDT?ref=B2345`,
+  },
+};
 ---
 
 <Layout title={pageTitle} description={pageDesc}>
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify(coinSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
   </Fragment>
 

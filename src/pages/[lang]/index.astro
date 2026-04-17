@@ -191,7 +191,7 @@ const websiteSchema = {
       <section aria-label={t("section.latest")} class="anim-2">
         <div class="sec-head" style="padding-top:16px;">
           <span class="sec-head-title">{t("section.latest")}</span>
-          <a href={`${base}/posts/`} class="sec-head-more">{t("section.all")} →</a>
+          <a href={`${base}/posts`} class="sec-head-more">{t("section.all")} →</a>
         </div>
         <div class="alist" id="main-list">
           {listPosts.length > 0 ? (
@@ -204,7 +204,7 @@ const websiteSchema = {
         </div>
         {merged.length > (1 + thumbPosts.length + listPosts.length) && (
           <div style="padding:0 16px 16px;text-align:center;">
-            <a href={`${base}/posts/`} class="more-btn" style="display:inline-block;max-width:280px;">
+            <a href={`${base}/posts`} class="more-btn" style="display:inline-block;max-width:280px;">
               {t("section.more")}
             </a>
           </div>
@@ -295,7 +295,7 @@ const websiteSchema = {
       <div class="rsidebar-section">
         <div class="rsidebar-head">{t("section.flash")}</div>
         {newsPosts.map(p => <UnifiedCard post={p} size="news" variant="h3" />)}
-        <a href={`${base}/posts/`} class="more-btn">{t("section.more")}</a>
+        <a href={`${base}/posts`} class="more-btn">{t("section.more")}</a>
       </div>
 
       <div class="rsidebar-section">

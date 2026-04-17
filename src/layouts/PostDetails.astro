@@ -178,8 +178,8 @@ const breadcrumbSchema = {
       position: 2,
       name: postLang === "en" ? "News" : postLang === "es" ? "Noticias" : postLang === "pt" ? "Notícias" : "资讯",
       item: postLang === "zh-CN"
-        ? `${Astro.url.origin}/posts/`
-        : `${Astro.url.origin}/${postLang.toLowerCase()}/posts/`,
+        ? `${Astro.url.origin}/posts`
+        : `${Astro.url.origin}/${postLang.toLowerCase()}/posts`,
     },
     {
       "@type": "ListItem",
@@ -251,6 +251,10 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
   canonicalURL={canonicalURL}
   pubDatetime={pubDatetime}
   modDatetime={modDatetime}
+  articleTags={tags}
+  articleSection={articleType === "news" ? "News" : articleType === "howto" || articleType === "guide" ? "Guide" : "Article"}
+  articleAuthorUrl={`${Astro.url.origin}/author/${authorSlug}/`}
+  twitterCreator={authorData.twitter?.match(/\/([A-Za-z0-9_]+)\/?$/)?.[1]}
   scrollSmooth
 >
   <Fragment slot="head">
@@ -277,11 +281,11 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 
       <!-- Breadcrumb -->
       <nav class="pd-breadcrumb" aria-label="breadcrumb">
-        <a href={postLang === "zh-CN" ? "/" : `/${postLang.toLowerCase()}/`}>
+        <a href={postLang === "zh-CN" ? "/" : `/${postLang.toLowerCase()}`}>
           {t("nav.home")}
         </a>
         <span aria-hidden="true">›</span>
-        <a href={postLang === "zh-CN" ? "/posts/" : `/${postLang.toLowerCase()}/posts/`}>
+        <a href={postLang === "zh-CN" ? "/posts" : `/${postLang.toLowerCase()}/posts`}>
           {t("nav.news")}
         </a>
         <span aria-hidden="true">›</span>
@@ -1117,32 +1121,39 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
 </style>
 
 <script>
+  // TOC scroll-spy — IntersectionObserver variant (O(1) per intersection,
+  // no per-scroll layout reads, no layout thrash).
+  let tocObserver: IntersectionObserver | null = null;
+
   function initTocSpy() {
-    const tocLinks = document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link");
+    // Tear down previous observer (important for ClientRouter swaps)
+    if (tocObserver) { tocObserver.disconnect(); tocObserver = null; }
+
+    const tocLinks = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link")
+    );
     if (!tocLinks.length) return;
 
-    const headingIds = Array.from(tocLinks).map(a => a.getAttribute("href")?.slice(1)).filter(Boolean) as string[];
-    const headingEls = headingIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const headingIds = tocLinks
+      .map(a => a.getAttribute("href")?.slice(1))
+      .filter(Boolean) as string[];
+    const headingEls = headingIds
+      .map(id => document.getElementById(id))
+      .filter(Boolean) as HTMLElement[];
     if (!headingEls.length) return;
 
-    let ticking = false;
+    // Track which headings are currently within the "reading zone"
+    const visible = new Set<Element>();
 
-    function updateActive() {
-      const scrollY = window.scrollY;
-      let activeIdx = 0;
-
-      for (let i = 0; i < headingEls.length; i++) {
-        if (headingEls[i].offsetTop <= scrollY + 100) {
-          activeIdx = i;
-        }
-      }
-
+    function setActive(el: Element | null) {
+      if (!el) return;
+      const idx = headingEls.indexOf(el as HTMLElement);
+      if (idx < 0) return;
       tocLinks.forEach((link, i) => {
-        link.classList.toggle("active", i === activeIdx);
+        link.classList.toggle("active", i === idx);
       });
-
-      // Scroll active link into view within the sticky container
-      const activeLink = tocLinks[activeIdx];
+      // Keep active link visible inside the sticky TOC container
+      const activeLink = tocLinks[idx];
       const container = activeLink?.closest(".pd-toc-sticky");
       if (activeLink && container) {
         const linkRect = activeLink.getBoundingClientRect();
@@ -1151,23 +1162,45 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
           activeLink.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }
-
-      ticking = false;
     }
 
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(updateActive);
-        ticking = true;
+    tocObserver = new IntersectionObserver(
+      entries => {
+        for (const e of entries) {
+          if (e.isIntersecting) visible.add(e.target);
+          else visible.delete(e.target);
+        }
+        // Pick the first heading (top-most) currently visible; fallback to
+        // last heading scrolled past.
+        if (visible.size) {
+          const first = headingEls.find(h => visible.has(h));
+          setActive(first ?? null);
+        } else {
+          // Nothing in reading zone → find the last heading above viewport
+          const scrollY = window.scrollY + 120;
+          let last: HTMLElement | null = null;
+          for (const h of headingEls) {
+            if (h.getBoundingClientRect().top + window.scrollY <= scrollY) last = h;
+            else break;
+          }
+          setActive(last);
+        }
+      },
+      {
+        // Reading zone: from 120px down to 60% viewport height
+        rootMargin: "-120px 0px -40% 0px",
+        threshold: 0,
       }
-    }
+    );
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    updateActive();
+    headingEls.forEach(el => tocObserver!.observe(el));
   }
 
   initTocSpy();
   document.addEventListener("astro:after-swap", initTocSpy);
+  document.addEventListener("astro:before-swap", () => {
+    tocObserver?.disconnect(); tocObserver = null;
+  });
 </script>
 
 <script>

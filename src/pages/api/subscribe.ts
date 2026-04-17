@@ -1,149 +1,40 @@
 // src/pages/api/subscribe.ts
 // ─────────────────────────────────────────────────────────────
-// 邮件订阅 API — Resend 集成
+// Newsletter subscription — Double opt-in (GDPR / CAN-SPAM compliant)
+//
 // POST /api/subscribe  { email: string, lang?: string }
+//
+// Flow:
+//   1. Rate-limit by IP (5 req / 10 min) — Upstash if configured, else in-memory
+//   2. Validate email + honeypot
+//   3. Issue signed HMAC token (24h expiry)
+//   4. Send confirmation email with link to /api/subscribe/confirm?token=...
+//   5. Return 202 { pending: true } — NOT yet added to Resend audience
+//
+// The actual audience write + welcome email happens in /api/subscribe/confirm
+// once the recipient proves ownership of the email address.
 // ─────────────────────────────────────────────────────────────
 
 export const prerender = false;
 
 import type { APIRoute } from "astro";
+import { rateLimit } from "@/utils/rateLimit";
+import { createToken } from "@/utils/subscribeTokens";
+import { buildConfirmHtml, CONFIRM_CONTENT, normalizeLang } from "@/utils/subscribeEmails";
 
-// 多语言邮件模板内容
-const WELCOME_CONTENT: Record<string, { subject: string; heading: string; intro: string; cta: string; unsubNote: string }> = {
-  "zh-CN": {
-    subject:   "欢迎订阅 Bitaigen — 专业区块链资讯",
-    heading:   "欢迎加入 Bitaigen！",
-    intro:     "感谢您订阅我们的区块链资讯简报。您将第一时间收到：",
-    cta:       "访问 Bitaigen.com →",
-    unsubNote: "如需退订，请回复此邮件并注明「退订」。",
-  },
-  "zh-TW": {
-    subject:   "歡迎訂閱 Bitaigen — 專業區塊鏈資訊",
-    heading:   "歡迎加入 Bitaigen！",
-    intro:     "感謝您訂閱我們的區塊鏈資訊快報。您將第一時間收到：",
-    cta:       "前往 Bitaigen.com →",
-    unsubNote: "如需退訂，請回覆此郵件並注明「退訂」。",
-  },
-  "en": {
-    subject:   "Welcome to Bitaigen — Professional Blockchain News",
-    heading:   "Welcome to Bitaigen!",
-    intro:     "Thanks for subscribing to our blockchain newsletter. You'll receive:",
-    cta:       "Visit Bitaigen.com →",
-    unsubNote: "To unsubscribe, reply to this email with 'unsubscribe'.",
-  },
-  "es": {
-    subject:   "Bienvenido a Bitaigen — Noticias Blockchain Profesionales",
-    heading:   "¡Bienvenido a Bitaigen!",
-    intro:     "Gracias por suscribirte. Recibirás:",
-    cta:       "Visitar Bitaigen.com →",
-    unsubNote: "Para cancelar la suscripción, responde a este correo con 'cancelar'.",
-  },
-  "pt": {
-    subject:   "Bem-vindo ao Bitaigen — Notícias Blockchain Profissionais",
-    heading:   "Bem-vindo ao Bitaigen!",
-    intro:     "Obrigado por se inscrever. Você receberá:",
-    cta:       "Visitar Bitaigen.com →",
-    unsubNote: "Para cancelar a inscrição, responda a este e-mail com 'cancelar'.",
-  },
-};
+const CONFIRM_TTL_SEC = 60 * 60 * 24; // 24 hours
 
-const BULLET_ITEMS: Record<string, string[]> = {
-  "zh-CN": ["比特币、以太坊实时行情分析", "加密货币市场深度报道", "交易所使用教程与安全指南", "DeFi 协议最新动态"],
-  "zh-TW": ["比特幣、以太坊即時行情分析", "加密貨幣市場深度報導", "交易所使用教學與安全指南", "DeFi 協議最新動態"],
-  "en":    ["Real-time Bitcoin & Ethereum price analysis", "In-depth crypto market reporting", "Exchange tutorials & wallet security guides", "Latest DeFi protocol news"],
-  "es":    ["Análisis de precio de Bitcoin y Ethereum en tiempo real", "Informes de mercado cripto en profundidad", "Tutoriales de exchanges y guías de seguridad", "Últimas noticias de protocolos DeFi"],
-  "pt":    ["Análise de preço de Bitcoin e Ethereum em tempo real", "Relatórios de mercado cripto aprofundados", "Tutoriais de exchanges e guias de segurança", "Últimas notícias de protocolos DeFi"],
-};
-
-function buildWelcomeHtml(lang: string, fromYear: number): string {
-  const c = WELCOME_CONTENT[lang] ?? WELCOME_CONTENT["zh-CN"];
-  const bullets = BULLET_ITEMS[lang] ?? BULLET_ITEMS["zh-CN"];
-  const bulletHtml = bullets.map(b => `<li style="margin:4px 0;">${b}</li>`).join("\n");
-
-  return `<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${c.subject}</title>
-</head>
-<body style="margin:0;padding:0;background:#f0f1f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-    <tr>
-      <td align="center" style="padding:24px 12px;">
-        <table width="600" cellpadding="0" cellspacing="0" role="presentation"
-          style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e8e9ef;">
-          <!-- Header -->
-          <tr>
-            <td style="background:#0d0e14;padding:24px 32px;text-align:center;">
-              <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;">
-                <tr>
-                  <td style="background:#f7931a;width:36px;height:36px;border-radius:8px;text-align:center;vertical-align:middle;">
-                    <span style="font-size:18px;font-weight:900;color:#fff;line-height:36px;">₿</span>
-                  </td>
-                  <td style="padding-left:12px;vertical-align:middle;">
-                    <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;">Bitaigen</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:36px 32px 28px;">
-              <h1 style="font-size:22px;font-weight:800;color:#1a1a1a;margin:0 0 14px;line-height:1.3;">${c.heading}</h1>
-              <p style="font-size:15px;color:#666677;line-height:1.7;margin:0 0 16px;">${c.intro}</p>
-              <ul style="font-size:14px;color:#666677;line-height:1.9;padding-left:20px;margin:0 0 28px;">
-                ${bulletHtml}
-              </ul>
-              <a href="https://bitaigen.com"
-                style="display:inline-block;background:#f7931a;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:15px;font-weight:700;letter-spacing:0.01em;">
-                ${c.cta}
-              </a>
-            </td>
-          </tr>
-          <!-- Divider -->
-          <tr>
-            <td style="padding:0 32px;"><hr style="border:none;border-top:1px solid #e8e9ef;margin:0;" /></td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px 32px;text-align:center;font-size:12px;color:#999aaa;line-height:1.7;">
-              <p style="margin:0;">© ${fromYear} <a href="https://bitaigen.com" style="color:#f7931a;text-decoration:none;">Bitaigen.com</a> — Professional Blockchain Intelligence</p>
-              <p style="margin:6px 0 0;font-size:11px;opacity:0.7;">${c.unsubNote}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
-
-// ── Simple in-memory rate limiter (per IP, 5 requests / 10 min) ──
-const rateLimitMap = new Map<string, { count: number; reset: number }>();
-const RATE_LIMIT = 5;
-const RATE_WINDOW = 10 * 60 * 1000; // 10 minutes
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.reset) {
-    rateLimitMap.set(ip, { count: 1, reset: now + RATE_WINDOW });
-    return false;
-  }
-  entry.count++;
-  return entry.count > RATE_LIMIT;
-}
-
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, clientAddress, url }) => {
   const headers = { "Content-Type": "application/json" };
 
   // ── Rate limiting ─────────────────────────────────────────
-  const ip = clientAddress || request.headers.get("x-forwarded-for") || "unknown";
-  if (isRateLimited(ip)) {
-    return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers });
+  const ip = clientAddress || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = await rateLimit(`subscribe:${ip}`, { max: 5, windowSec: 600 });
+  if (rl.limited) {
+    return new Response(
+      JSON.stringify({ error: "rate_limited", retryAfter: rl.resetInSeconds }),
+      { status: 429, headers: { ...headers, "Retry-After": String(rl.resetInSeconds) } },
+    );
   }
 
   // ── Parse body ────────────────────────────────────────────
@@ -156,79 +47,78 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   // ── Honeypot check — bots fill hidden fields ──────────────
   if (body.website) {
-    // Silently return success to fool bots
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers });
+    // Silently pretend success to fool bots (but do nothing real)
+    return new Response(JSON.stringify({ success: true, pending: true }), { status: 200, headers });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const lang  = typeof body.lang  === "string" ? body.lang  : "zh-CN";
+  const rawEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const lang = normalizeLang(body.lang);
 
   // ── Validate email ────────────────────────────────────────
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) || rawEmail.length > 254) {
     return new Response(JSON.stringify({ error: "invalid_email" }), { status: 400, headers });
   }
 
   // ── Check API key ─────────────────────────────────────────
   const apiKey = import.meta.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error("[subscribe] RESEND_API_KEY not configured");
+  const fromEmail = import.meta.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !fromEmail) {
+    console.error("[subscribe] RESEND_API_KEY or RESEND_FROM_EMAIL not configured");
     return new Response(JSON.stringify({ error: "not_configured" }), { status: 500, headers });
   }
 
-  const resendHeaders = {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
+  // ── Issue confirmation token + build link ─────────────────
+  let token: string;
+  try {
+    token = createToken("confirm", rawEmail, lang, CONFIRM_TTL_SEC);
+  } catch (err) {
+    console.error("[subscribe] token creation failed:", err);
+    return new Response(JSON.stringify({ error: "server_error" }), { status: 500, headers });
+  }
+
+  const origin = url.origin; // e.g. https://bitaigen.com
+  const confirmUrl = `${origin}/api/subscribe/confirm?token=${encodeURIComponent(token)}`;
+
+  // ── Send confirmation email ───────────────────────────────
+  const content = CONFIRM_CONTENT[lang];
+  const html = buildConfirmHtml(lang, confirmUrl, new Date().getFullYear());
 
   try {
-    // ── 1. Add contact to Resend Audience ─────────────────────
-    const audienceId = import.meta.env.RESEND_AUDIENCE_ID;
-    if (audienceId) {
-      const audienceRes = await fetch(
-        `https://api.resend.com/audiences/${audienceId}/contacts`,
-        {
-          method: "POST",
-          headers: resendHeaders,
-          body: JSON.stringify({ email, unsubscribe: false }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-      if (!audienceRes.ok) {
-        const err = await audienceRes.text().catch(() => "");
-        console.warn("[subscribe] audience add failed:", err);
-        // Non-fatal — continue to send welcome email
-      }
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from:    `Bitaigen <${fromEmail}>`,
+        to:      [rawEmail],
+        subject: content.subject,
+        html,
+        // RFC 8058: one-click unsubscribe — relevant once the user is actually
+        // subscribed. We still include a header here pointing to the site in case
+        // the confirmation email itself gets reported as spam.
+        headers: {
+          "List-Unsubscribe":      `<${origin}/api/unsubscribe?email=${encodeURIComponent(rawEmail)}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!emailRes.ok) {
+      const errText = await emailRes.text().catch(() => "");
+      console.error("[subscribe] confirmation email failed:", emailRes.status, errText);
+      return new Response(JSON.stringify({ error: "send_failed" }), { status: 502, headers });
     }
-
-    // ── 2. Send welcome email (requires verified sender domain) ─
-    const fromEmail = import.meta.env.RESEND_FROM_EMAIL;
-    if (fromEmail) {
-      const content = WELCOME_CONTENT[lang] ?? WELCOME_CONTENT["zh-CN"];
-      const html = buildWelcomeHtml(lang, new Date().getFullYear());
-
-      const emailRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: resendHeaders,
-        body: JSON.stringify({
-          from:    `Bitaigen <${fromEmail}>`,
-          to:      [email],
-          subject: content.subject,
-          html,
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!emailRes.ok) {
-        const errText = await emailRes.text().catch(() => "");
-        console.warn("[subscribe] welcome email failed:", errText);
-        // Non-fatal — subscriber was already added to audience
-      }
-    }
-
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers });
-
   } catch (err) {
     console.error("[subscribe] unexpected error:", err);
     return new Response(JSON.stringify({ error: "server_error" }), { status: 500, headers });
   }
+
+  // 202 Accepted — request received, pending confirmation
+  return new Response(
+    JSON.stringify({ success: true, pending: true }),
+    { status: 202, headers },
+  );
 };

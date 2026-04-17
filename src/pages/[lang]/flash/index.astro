@@ -1,6 +1,6 @@
 ---
 // src/pages/[lang]/flash/index.astro
-// 非默认语言快讯列表页，如 /en/flash  /es/flash
+// 非默认语言快讯列表页 — 按日期分档 + 分页
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -12,89 +12,287 @@ import type { SanityFlash } from "@/utils/sanity";
 import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
 
 const { lang: langPath } = Astro.params;
-
-// URL段 → 内部 Lang key（如 "en" → "en", "zh-tw" → "zh-TW"）
 const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
+const basePath = `/${LANG_TO_PATH[lang]}`;
+
+// ── 多语言配置 ──────────────────────────────────────────────────
+const L: Record<string, Record<string, string>> = {
+  "zh-TW": {
+    title:      "快訊",
+    subtitle:   "AI 持續更新，加密貨幣最新動態",
+    empty:      "暫無快訊，請稍後刷新。",
+    today:      "今天",
+    yesterday:  "昨天",
+    items:      "條",
+    source:     "來源:",
+    original:   "原文 →",
+    prev:       "← 上一頁",
+    next:       "下一頁 →",
+    pageOf:     "頁",
+    autoUpdate: "快訊每 30 分鐘自動更新",
+    refresh:    "立即刷新",
+    high:       "重大",
+    medium:     "快訊",
+    low:        "動態",
+    justNow:    "剛剛",
+    minAgo:     "分鐘前",
+    hrAgo:      "小時前",
+    dayAgo:     "天前",
+    descr:      "Bitaigen 加密貨幣即時快訊，最新比特幣、以太坊、DeFi、NFT 動態。",
+  },
+  en: {
+    title:      "Flash News",
+    subtitle:   "AI-powered crypto updates, refreshed every 30 minutes",
+    empty:      "No flash news yet. Check back soon.",
+    today:      "Today",
+    yesterday:  "Yesterday",
+    items:      "items",
+    source:     "Source:",
+    original:   "Source →",
+    prev:       "← Previous",
+    next:       "Next →",
+    pageOf:     "Page",
+    autoUpdate: "Updates every 30 min",
+    refresh:    "Refresh now",
+    high:       "Breaking",
+    medium:     "Flash",
+    low:        "Update",
+    justNow:    "just now",
+    minAgo:     "m ago",
+    hrAgo:      "h ago",
+    dayAgo:     "d ago",
+    descr:      "Bitaigen crypto flash news — latest Bitcoin, Ethereum, DeFi, NFT updates.",
+  },
+  es: {
+    title:      "Noticias Rápidas",
+    subtitle:   "Actualizaciones cripto impulsadas por IA, cada 30 minutos",
+    empty:      "Aún no hay noticias. Vuelve pronto.",
+    today:      "Hoy",
+    yesterday:  "Ayer",
+    items:      "noticias",
+    source:     "Fuente:",
+    original:   "Fuente →",
+    prev:       "← Anterior",
+    next:       "Siguiente →",
+    pageOf:     "Página",
+    autoUpdate: "Se actualiza cada 30 min",
+    refresh:    "Actualizar ahora",
+    high:       "Urgente",
+    medium:     "Flash",
+    low:        "Novedad",
+    justNow:    "ahora",
+    minAgo:     "min",
+    hrAgo:      "h",
+    dayAgo:     "d",
+    descr:      "Bitaigen noticias rápidas de criptomonedas — Bitcoin, Ethereum, DeFi, NFT.",
+  },
+  pt: {
+    title:      "Notícias Rápidas",
+    subtitle:   "Atualizações cripto por IA, a cada 30 minutos",
+    empty:      "Nenhuma notícia ainda. Volte em breve.",
+    today:      "Hoje",
+    yesterday:  "Ontem",
+    items:      "notícias",
+    source:     "Fonte:",
+    original:   "Fonte →",
+    prev:       "← Anterior",
+    next:       "Próxima →",
+    pageOf:     "Página",
+    autoUpdate: "Atualiza a cada 30 min",
+    refresh:    "Atualizar agora",
+    high:       "Urgente",
+    medium:     "Flash",
+    low:        "Novidade",
+    justNow:    "agora",
+    minAgo:     "min",
+    hrAgo:      "h",
+    dayAgo:     "d",
+    descr:      "Bitaigen notícias rápidas de criptomoedas — Bitcoin, Ethereum, DeFi, NFT.",
+  },
+};
+
+const t = L[lang] || L["en"];
+
+// ── 分页参数 ────────────────────────────────────────────────────
+const PAGE_SIZE = 20;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
+const start = (page - 1) * PAGE_SIZE;
+const end   = start + PAGE_SIZE;
 
 const flashes = await sanityClient.fetch<SanityFlash[]>(`
-  *[_type == "btgFlash" && draft != true && lang == $lang] | order(pubDatetime desc) [0...50] {
+  *[_type == "btgFlash" && draft != true && lang == $lang] | order(pubDatetime desc) [${start}...${end + 1}] {
     _id, title, slug, content, lang, importance, tags, pubDatetime, sourceUrl, sourceName
   }
 `, { lang }).catch(() => [] as SanityFlash[]);
 
+const hasNextPage = flashes.length > PAGE_SIZE;
+const pageFlashes = flashes.slice(0, PAGE_SIZE);
+const hasPrevPage = page > 1;
+
+// ── 按日期分组 ──────────────────────────────────────────────────
+const today     = new Date();
+const todayStr  = today.toISOString().slice(0, 10);
+const yesterday = new Date(today.getTime() - 86400000).toISOString().slice(0, 10);
+
+type DateGroup = { label: string; date: string; items: SanityFlash[] };
+const groups: DateGroup[] = [];
+const groupMap = new Map<string, DateGroup>();
+
+for (const f of pageFlashes) {
+  const dateStr = f.pubDatetime.slice(0, 10);
+  let label: string;
+  if (dateStr === todayStr) {
+    label = t.today;
+  } else if (dateStr === yesterday) {
+    label = t.yesterday;
+  } else {
+    const d = new Date(dateStr + "T00:00:00");
+    if (lang === "zh-TW") {
+      label = `${d.getMonth() + 1}月${d.getDate()}日`;
+    } else if (lang === "es") {
+      label = d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+    } else if (lang === "pt") {
+      label = d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+    } else {
+      label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+  }
+
+  let group = groupMap.get(dateStr);
+  if (!group) {
+    group = { label, date: dateStr, items: [] };
+    groupMap.set(dateStr, group);
+    groups.push(group);
+  }
+  group.items.push(f);
+}
+
+// ── 样式 & 工具 ────────────────────────────────────────────────
 const importanceColor: Record<string, string> = {
   high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   low:    "bg-skin-fill text-skin-muted",
 };
-const importanceLabel: Record<string, string> = {
-  high: "Breaking", medium: "Flash", low: "Update",
-};
 
 function timeAgo(dt: string): string {
   const diff = Date.now() - new Date(dt).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1)  return t.justNow;
+  if (m < 60) return `${m}${t.minAgo}`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h}${t.hrAgo}`;
+  return `${Math.floor(h / 24)}${t.dayAgo}`;
 }
 
-const basePath = `/${LANG_TO_PATH[lang]}`;
+function timeOnly(dt: string): string {
+  const d = new Date(dt);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 ---
 
 <Layout
-  title={`Flash News | ${SITE.title}`}
-  description="Bitaigen crypto flash news - latest Bitcoin, Ethereum, DeFi, NFT updates."
+  title={`${t.title}${page > 1 ? ` · ${t.pageOf} ${page}` : ""} | ${SITE.title}`}
+  description={t.descr}
 >
   <Header />
 
   <main class="mx-auto max-w-3xl px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-skin-base">⚡ Flash News</h1>
-      <p class="mt-1 text-sm text-skin-muted">AI-powered crypto updates, refreshed every 30 minutes</p>
+      <h1 class="text-2xl font-bold text-skin-base">⚡ {t.title}</h1>
+      <p class="mt-1 text-sm text-skin-muted">{t.subtitle}</p>
     </div>
 
-    {flashes.length === 0 ? (
-      <p class="text-skin-muted">No flash news yet. Check back soon.</p>
+    {pageFlashes.length === 0 ? (
+      <p class="text-skin-muted">{t.empty}</p>
     ) : (
-      <div class="space-y-4">
-        {flashes.map((f: SanityFlash) => (
-          <article class="rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
-            <div class="flex items-start gap-3">
-              <span class={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs font-medium ${importanceColor[f.importance] || importanceColor.low}`}>
-                {importanceLabel[f.importance] || "Flash"}
-              </span>
-              <div class="flex-1 min-w-0">
-                <h2 class="font-semibold text-skin-base leading-snug mb-1">
-                  <a href={`${basePath}/flash/${f.slug.current}`} class="hover:text-skin-accent">
-                    {f.title}
-                  </a>
-                </h2>
-                <p class="text-sm text-skin-muted leading-relaxed">{f.content}</p>
-                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
-                  <time datetime={f.pubDatetime}>{timeAgo(f.pubDatetime)}</time>
-                  {f.sourceName && <span>Source: {f.sourceName}</span>}
-                  {(f.tags || []).slice(0, 3).map((tag: string) => (
-                    <a href={`${basePath}/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
-                  ))}
-                  {f.sourceUrl && (
-                    <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
-                       class="ml-auto hover:text-skin-accent">
-                      Source →
-                    </a>
-                  )}
-                </div>
-              </div>
+      <div class="space-y-8">
+        {groups.map((group) => (
+          <section>
+            {/* 日期分隔 */}
+            <div class="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 bg-skin-base/80 px-4 py-2 backdrop-blur-sm border-b border-skin-line">
+              <span class="text-sm font-semibold text-skin-accent">{group.label}</span>
+              <span class="text-xs text-skin-muted">{group.date}</span>
+              <span class="text-xs text-skin-muted">· {group.items.length} {t.items}</span>
             </div>
-          </article>
+
+            {/* 时间线 */}
+            <div class="relative ml-3 border-l-2 border-skin-line pl-6 space-y-4">
+              {group.items.map((f: SanityFlash) => (
+                <article class="relative rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
+                  <span class="absolute -left-[33px] top-5 h-2.5 w-2.5 rounded-full border-2 border-skin-accent bg-skin-base" />
+
+                  <div class="flex items-start gap-3">
+                    <div class="flex shrink-0 flex-col items-center gap-1">
+                      <time class="text-xs font-mono text-skin-muted" datetime={f.pubDatetime}>
+                        {timeOnly(f.pubDatetime)}
+                      </time>
+                      <span class={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${importanceColor[f.importance] || importanceColor.low}`}>
+                        {t[f.importance] || t.medium}
+                      </span>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                      <h2 class="font-semibold text-skin-base leading-snug mb-1">
+                        <a href={`${basePath}/flash/${f.slug.current}`} class="hover:text-skin-accent">
+                          {f.title}
+                        </a>
+                      </h2>
+                      <p class="text-sm text-skin-muted leading-relaxed line-clamp-3">
+                        {f.content}
+                      </p>
+
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
+                        <span>{timeAgo(f.pubDatetime)}</span>
+                        {f.sourceName && <span>{t.source} {f.sourceName}</span>}
+                        {(f.tags || []).slice(0, 3).map((tag: string) => (
+                          <a href={`${basePath}/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
+                        ))}
+                        {f.sourceUrl && (
+                          <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
+                             class="ml-auto hover:text-skin-accent">
+                            {t.original}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     )}
 
-    <p class="mt-8 text-center text-xs text-skin-muted">
-      Updates every 30 min · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">Refresh now</button>
+    {/* ── 分页导航 ─────────────────────────────────────────── */}
+    <nav class="mt-10 flex items-center justify-between border-t border-skin-line pt-6">
+      {hasPrevPage ? (
+        <a href={page === 2 ? `${basePath}/flash` : `${basePath}/flash?page=${page - 1}`}
+           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+          {t.prev}
+        </a>
+      ) : (
+        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+          {t.prev}
+        </span>
+      )}
+
+      <span class="text-sm text-skin-muted">{t.pageOf} {page}</span>
+
+      {hasNextPage ? (
+        <a href={`${basePath}/flash?page=${page + 1}`}
+           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+          {t.next}
+        </a>
+      ) : (
+        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+          {t.next}
+        </span>
+      )}
+    </nav>
+
+    <p class="mt-6 text-center text-xs text-skin-muted">
+      {t.autoUpdate} · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">{t.refresh}</button>
     </p>
   </main>
 

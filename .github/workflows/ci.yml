@@ -40,6 +40,9 @@ jobs:
       - name: "📦 Install dependencies"
         run: pnpm install
 
+      - name: "🔐 Check environment variables (warnings only, hard-fail on leaked secrets)"
+        run: pnpm run check:env
+
       - name: "🔎 Lint code"
         run: pnpm run lint
 
@@ -48,3 +51,11 @@ jobs:
 
       - name: "🚀 Build the project"
         run: pnpm run build
+        env:
+          # 在 CI 中这些 secrets 走 GitHub repo settings → Secrets
+          SANITY_READ_TOKEN: ${{ secrets.SANITY_READ_TOKEN }}
+          PUBLIC_SANITY_PROJECT_ID: ${{ vars.PUBLIC_SANITY_PROJECT_ID }}
+          PUBLIC_SANITY_DATASET: ${{ vars.PUBLIC_SANITY_DATASET }}
+          PUBLIC_SANITY_API_VERSION: ${{ vars.PUBLIC_SANITY_API_VERSION }}
+          GHOST_URL: ${{ vars.GHOST_URL }}
+          GHOST_CONTENT_KEY: ${{ secrets.GHOST_CONTENT_KEY }}

@@ -1,6 +1,6 @@
 ---
 // src/pages/flash/index.astro
-// 快讯列表页（SSR/ISR，实时拉取 Sanity 快讯）
+// 快讯列表页 — 按日期分档 + 分页（zh-CN 默认语言）
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -10,13 +10,54 @@ import { sanityClient } from "@/utils/sanity";
 import { SITE } from "@/config";
 import type { SanityFlash } from "@/utils/sanity";
 
-// 拉取最新50条快讯
+// ── 分页参数 ────────────────────────────────────────────────────
+const PAGE_SIZE = 20;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
+const start = (page - 1) * PAGE_SIZE;
+const end   = start + PAGE_SIZE;
+
+// ── 数据拉取（多取 1 条判断是否有下一页）─────────────────────────
 const flashes = await sanityClient.fetch<SanityFlash[]>(`
-  *[_type == "btgFlash" && draft != true && lang == "zh-CN"] | order(pubDatetime desc) [0...50] {
+  *[_type == "btgFlash" && draft != true && lang == "zh-CN"] | order(pubDatetime desc) [${start}...${end + 1}] {
     _id, title, slug, content, lang, importance, tags, pubDatetime, sourceUrl, sourceName
   }
 `).catch(() => [] as SanityFlash[]);
 
+const hasNextPage = flashes.length > PAGE_SIZE;
+const pageFlashes = flashes.slice(0, PAGE_SIZE);
+const hasPrevPage = page > 1;
+
+// ── 按日期分组 ──────────────────────────────────────────────────
+const today     = new Date();
+const todayStr  = today.toISOString().slice(0, 10);
+const yesterday = new Date(today.getTime() - 86400000).toISOString().slice(0, 10);
+
+type DateGroup = { label: string; date: string; items: SanityFlash[] };
+const groups: DateGroup[] = [];
+const groupMap = new Map<string, DateGroup>();
+
+for (const f of pageFlashes) {
+  const dateStr = f.pubDatetime.slice(0, 10);
+  let label: string;
+  if (dateStr === todayStr) {
+    label = "今天";
+  } else if (dateStr === yesterday) {
+    label = "昨天";
+  } else {
+    const d = new Date(dateStr + "T00:00:00");
+    label = `${d.getMonth() + 1}月${d.getDate()}日`;
+  }
+
+  let group = groupMap.get(dateStr);
+  if (!group) {
+    group = { label, date: dateStr, items: [] };
+    groupMap.set(dateStr, group);
+    groups.push(group);
+  }
+  group.items.push(f);
+}
+
+// ── 样式 & 工具 ────────────────────────────────────────────────
 const importanceColor: Record<string, string> = {
   high:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -35,10 +76,15 @@ function timeAgo(dt: string): string {
   if (h < 24) return `${h} 小时前`;
   return `${Math.floor(h / 24)} 天前`;
 }
+
+function timeOnly(dt: string): string {
+  const d = new Date(dt);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 ---
 
 <Layout
-  title={`快讯 | ${SITE.title}`}
+  title={`快讯${page > 1 ? ` · 第${page}页` : ""} | ${SITE.title}`}
   description="Bitaigen 加密货币实时快讯，最新比特币、以太坊、DeFi、NFT动态。"
 >
   <Header />
@@ -49,56 +95,98 @@ function timeAgo(dt: string): string {
       <p class="mt-1 text-sm text-skin-muted">AI 持续更新，加密货币最新动态</p>
     </div>
 
-    {flashes.length === 0 ? (
+    {pageFlashes.length === 0 ? (
       <p class="text-skin-muted">暂无快讯，请稍后刷新。</p>
     ) : (
-      <div class="space-y-4">
-        {flashes.map((f: SanityFlash) => (
-          <article class="rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
-            <div class="flex items-start gap-3">
-              <!-- 重要性标签 -->
-              <span class={`mt-0.5 shrink-0 rounded px-2 py-0.5 text-xs font-medium ${importanceColor[f.importance] || importanceColor.low}`}>
-                {importanceLabel[f.importance] || "快讯"}
-              </span>
-
-              <div class="flex-1 min-w-0">
-                <h2 class="font-semibold text-skin-base leading-snug mb-1">
-                  <a href={`/flash/${f.slug.current}`} class="hover:text-skin-accent">
-                    {f.title}
-                  </a>
-                </h2>
-                <p class="text-sm text-skin-muted leading-relaxed">
-                  {f.content}
-                </p>
-
-                <!-- 底部信息 -->
-                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
-                  <time datetime={f.pubDatetime}>{timeAgo(f.pubDatetime)}</time>
-
-                  {f.sourceName && (
-                    <span>来源: {f.sourceName}</span>
-                  )}
-
-                  {(f.tags || []).slice(0, 3).map((tag: string) => (
-                    <a href={`/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
-                  ))}
-
-                  {f.sourceUrl && (
-                    <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
-                       class="ml-auto hover:text-skin-accent">
-                      原文 →
-                    </a>
-                  )}
-                </div>
-              </div>
+      <div class="space-y-8">
+        {groups.map((group) => (
+          <section>
+            {/* 日期分隔 */}
+            <div class="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-3 bg-skin-base/80 px-4 py-2 backdrop-blur-sm border-b border-skin-line">
+              <span class="text-sm font-semibold text-skin-accent">{group.label}</span>
+              <span class="text-xs text-skin-muted">{group.date}</span>
+              <span class="text-xs text-skin-muted">· {group.items.length} 条</span>
             </div>
-          </article>
+
+            {/* 时间线 */}
+            <div class="relative ml-3 border-l-2 border-skin-line pl-6 space-y-4">
+              {group.items.map((f: SanityFlash) => (
+                <article class="relative rounded-lg border border-skin-line bg-skin-card p-4 hover:border-skin-accent transition-colors">
+                  {/* 时间线圆点 */}
+                  <span class="absolute -left-[33px] top-5 h-2.5 w-2.5 rounded-full border-2 border-skin-accent bg-skin-base" />
+
+                  <div class="flex items-start gap-3">
+                    {/* 时间 + 重要性 */}
+                    <div class="flex shrink-0 flex-col items-center gap-1">
+                      <time class="text-xs font-mono text-skin-muted" datetime={f.pubDatetime}>
+                        {timeOnly(f.pubDatetime)}
+                      </time>
+                      <span class={`rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ${importanceColor[f.importance] || importanceColor.low}`}>
+                        {importanceLabel[f.importance] || "快讯"}
+                      </span>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                      <h2 class="font-semibold text-skin-base leading-snug mb-1">
+                        <a href={`/flash/${f.slug.current}`} class="hover:text-skin-accent">
+                          {f.title}
+                        </a>
+                      </h2>
+                      <p class="text-sm text-skin-muted leading-relaxed line-clamp-3">
+                        {f.content}
+                      </p>
+
+                      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-skin-muted">
+                        <span>{timeAgo(f.pubDatetime)}</span>
+                        {f.sourceName && <span>来源: {f.sourceName}</span>}
+                        {(f.tags || []).slice(0, 3).map((tag: string) => (
+                          <a href={`/tags/${tag}`} class="hover:text-skin-accent">#{tag}</a>
+                        ))}
+                        {f.sourceUrl && (
+                          <a href={f.sourceUrl} target="_blank" rel="noopener noreferrer nofollow"
+                             class="ml-auto hover:text-skin-accent">
+                            原文 →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     )}
 
-    <!-- 自动刷新提示 -->
-    <p class="mt-8 text-center text-xs text-skin-muted">
+    {/* ── 分页导航 ─────────────────────────────────────────── */}
+    <nav class="mt-10 flex items-center justify-between border-t border-skin-line pt-6">
+      {hasPrevPage ? (
+        <a href={page === 2 ? "/flash" : `/flash?page=${page - 1}`}
+           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+          ← 上一页
+        </a>
+      ) : (
+        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+          ← 上一页
+        </span>
+      )}
+
+      <span class="text-sm text-skin-muted">第 {page} 页</span>
+
+      {hasNextPage ? (
+        <a href={`/flash?page=${page + 1}`}
+           class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+          下一页 →
+        </a>
+      ) : (
+        <span class="rounded-lg border border-skin-line/50 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+          下一页 →
+        </span>
+      )}
+    </nav>
+
+    <p class="mt-6 text-center text-xs text-skin-muted">
       快讯每 30 分钟自动更新 · <button onclick="window.location.reload()" class="text-skin-accent hover:underline cursor-pointer">立即刷新</button>
     </p>
   </main>

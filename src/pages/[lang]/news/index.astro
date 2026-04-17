@@ -1,0 +1,399 @@
+---
+// src/pages/[lang]/news/index.astro
+// 多语言资讯列表页 — 服务端分页 + 标签筛选
+// SEO: CollectionPage JSON-LD, rel=next/prev, canonical, BreadcrumbList
+export const prerender = false;
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import BinanceBanner from "@/components/BinanceBanner.astro";
+import SubscribeForm from "@/components/SubscribeForm.astro";
+import { sanityClient } from "@/utils/sanity";
+import { SITE } from "@/config";
+import type { SanityPost } from "@/utils/sanity";
+import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
+
+const { lang: langPath } = Astro.params;
+const lang: Lang = LANG_PATH_MAP[langPath ?? ""] ?? "en";
+const basePath = `/${LANG_TO_PATH[lang]}`;
+
+// ── 多语言文案 ───────────────────────────────────────────────
+const L: Record<string, Record<string, string>> = {
+  "zh-TW": {
+    title:       "加密貨幣資訊",
+    subtitle:    "比特幣、以太坊、DeFi、NFT 最新動態與深度分析",
+    metaDesc:    "Bitaigen 加密貨幣資訊中心 — 比特幣、以太坊、DeFi、NFT 最新行情與深度分析。",
+    breadHome:   "首頁",
+    breadNews:   "資訊",
+    filterLabel: "目前篩選：",
+    clearFilter: "× 清除篩選",
+    empty:       "暫無相關資訊，請稍後查看。",
+    hotTags:     "熱門標籤",
+    allTags:     "查看全部標籤 →",
+    tagTitle:    "相關資訊",
+    tagSubtitle: "標籤相關的行情分析、教程與深度報告",
+    prev:        "上一頁",
+    next:        "下一頁",
+    pageOf:      "第",
+    pageSuffix:  "頁",
+    totalPrefix: "共",
+    totalSuffix: "篇",
+    paginationLabel: "分頁導覽",
+    typeNews:    "資訊", typeArticle: "深度", typeMarket: "行情", typeHowto: "教程", typeGuide: "指南",
+  },
+  en: {
+    title:       "Crypto News",
+    subtitle:    "Latest Bitcoin, Ethereum, DeFi & NFT updates with in-depth analysis",
+    metaDesc:    "Bitaigen crypto news hub — latest Bitcoin, Ethereum, DeFi, NFT market analysis.",
+    breadHome:   "Home",
+    breadNews:   "News",
+    filterLabel: "Filtered by:",
+    clearFilter: "× Clear filter",
+    empty:       "No articles found. Check back soon.",
+    hotTags:     "Popular Tags",
+    allTags:     "View all tags →",
+    tagTitle:    "tagged articles",
+    tagSubtitle: "Market analysis, tutorials & in-depth guides",
+    prev:        "Previous",
+    next:        "Next",
+    pageOf:      "Page",
+    pageSuffix:  "",
+    totalPrefix: "",
+    totalSuffix: "articles",
+    paginationLabel: "Pagination",
+    typeNews:    "News", typeArticle: "Analysis", typeMarket: "Market", typeHowto: "Tutorial", typeGuide: "Guide",
+  },
+  es: {
+    title:       "Noticias Cripto",
+    subtitle:    "Últimas noticias de Bitcoin, Ethereum, DeFi y NFT con análisis profundo",
+    metaDesc:    "Bitaigen noticias cripto — Bitcoin, Ethereum, DeFi, NFT análisis de mercado.",
+    breadHome:   "Inicio",
+    breadNews:   "Noticias",
+    filterLabel: "Filtrado por:",
+    clearFilter: "× Quitar filtro",
+    empty:       "No hay artículos. Vuelve pronto.",
+    hotTags:     "Etiquetas populares",
+    allTags:     "Ver todas las etiquetas →",
+    tagTitle:    "artículos",
+    tagSubtitle: "Análisis de mercado, tutoriales y guías",
+    prev:        "Anterior",
+    next:        "Siguiente",
+    pageOf:      "Página",
+    pageSuffix:  "",
+    totalPrefix: "",
+    totalSuffix: "artículos",
+    paginationLabel: "Paginación",
+    typeNews:    "Noticia", typeArticle: "Análisis", typeMarket: "Mercado", typeHowto: "Tutorial", typeGuide: "Guía",
+  },
+  pt: {
+    title:       "Notícias Cripto",
+    subtitle:    "Últimas notícias de Bitcoin, Ethereum, DeFi e NFT com análise aprofundada",
+    metaDesc:    "Bitaigen notícias cripto — Bitcoin, Ethereum, DeFi, NFT análise de mercado.",
+    breadHome:   "Início",
+    breadNews:   "Notícias",
+    filterLabel: "Filtrado por:",
+    clearFilter: "× Limpar filtro",
+    empty:       "Nenhum artigo encontrado. Volte em breve.",
+    hotTags:     "Tags populares",
+    allTags:     "Ver todas as tags →",
+    tagTitle:    "artigos",
+    tagSubtitle: "Análise de mercado, tutoriais e guias",
+    prev:        "Anterior",
+    next:        "Próxima",
+    pageOf:      "Página",
+    pageSuffix:  "",
+    totalPrefix: "",
+    totalSuffix: "artigos",
+    paginationLabel: "Paginação",
+    typeNews:    "Notícia", typeArticle: "Análise", typeMarket: "Mercado", typeHowto:  "Tutorial", typeGuide: "Guia",
+  },
+};
+
+const t = L[lang] || L["en"];
+
+const PAGE_SIZE = 20;
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
+const filterTag = Astro.url.searchParams.get("tag") || "";
+const start = (page - 1) * PAGE_SIZE;
+const end   = start + PAGE_SIZE;
+
+// ── 拉取文章 + 总数 ─────────────────────────────────────────
+const tagFilter = filterTag ? ` && $filterTag in tags` : "";
+const baseFilter = `_type == "btgPost" && draft != true && lang == $lang${tagFilter}`;
+const queryParams = filterTag ? { lang, filterTag } : { lang };
+
+const [posts, totalCount] = await Promise.all([
+  sanityClient.fetch<SanityPost[]>(`
+    *[${baseFilter}] | order(pubDatetime desc) [${start}...${end + 1}] {
+      _id, title, slug, lang, articleType, description,
+      pubDatetime, tags, sourceName
+    }
+  `, queryParams).catch(() => [] as SanityPost[]),
+  sanityClient.fetch<number>(`count(*[${baseFilter}])`, queryParams).catch(() => 0),
+]);
+
+const hasNextPage = posts.length > PAGE_SIZE;
+const pagePosts  = posts.slice(0, PAGE_SIZE);
+const hasPrevPage = page > 1;
+const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+// ── 热门标签 ─────────────────────────────────────────────────
+const tagSample = await sanityClient.fetch<{ tags: string[] }[]>(`
+  *[_type == "btgPost" && draft != true && lang == $lang] | order(pubDatetime desc) [0...100] {
+    tags
+  }
+`, { lang }).catch(() => [] as { tags: string[] }[]);
+
+const tagFreq: Record<string, number> = {};
+for (const p of tagSample) {
+  for (const tag of (p.tags || [])) {
+    tagFreq[tag] = (tagFreq[tag] || 0) + 1;
+  }
+}
+const hotTags = Object.entries(tagFreq)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 20)
+  .map(([tag]) => tag);
+
+// ── 类型标签配色 ─────────────────────────────────────────────
+const typeColorMap: Record<string, string> = {
+  news:    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  article: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  market:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  howto:   "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  guide:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+};
+const typeLabelMap: Record<string, string> = {
+  news: t.typeNews, article: t.typeArticle, market: t.typeMarket, howto: t.typeHowto, guide: t.typeGuide,
+};
+
+function formatDate(dt: string): string {
+  const localeMap: Record<string, string> = {
+    "zh-TW": "zh-TW", "en": "en-US", "es": "es-ES", "pt": "pt-BR",
+  };
+  return new Date(dt).toLocaleDateString(localeMap[lang] || "en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
+// ── 分页链接工具 ─────────────────────────────────────────────
+function pageHref(p: number): string {
+  const base = `${basePath}/news`;
+  const ps = new URLSearchParams();
+  if (filterTag) ps.set("tag", filterTag);
+  if (p > 1) ps.set("page", String(p));
+  const qs = ps.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+// ── SEO：canonical / rel prev-next ──────────────────────────
+const siteBase = SITE.website.replace(/\/$/, "");
+const canonicalUrl = `${siteBase}${pageHref(page)}`;
+const prevUrl = hasPrevPage ? `${siteBase}${pageHref(page - 1)}` : null;
+const nextUrl = hasNextPage ? `${siteBase}${pageHref(page + 1)}` : null;
+
+// ── SEO：JSON-LD CollectionPage + BreadcrumbList ─────────────
+const collectionSchema = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: filterTag ? `#${filterTag} ${t.title}` : t.title,
+  description: t.metaDesc,
+  url: canonicalUrl,
+  inLanguage: lang === "zh-TW" ? "zh-Hant" : lang === "pt" ? "pt-BR" : lang,
+  isPartOf: { "@type": "WebSite", name: SITE.title, url: siteBase },
+  ...(pagePosts.length > 0 && {
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: totalCount,
+      itemListElement: pagePosts.map((p: SanityPost, i: number) => ({
+        "@type": "ListItem",
+        position: start + i + 1,
+        url: `${siteBase}${basePath}/news/${p.slug.current}`,
+        name: p.title,
+      })),
+    },
+  }),
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: t.breadHome, item: `${siteBase}${basePath || "/"}` },
+    { "@type": "ListItem", position: 2, name: t.breadNews, item: `${siteBase}${basePath}/news` },
+    ...(filterTag
+      ? [{ "@type": "ListItem", position: 3, name: `#${filterTag}`, item: `${siteBase}${basePath}/news?tag=${filterTag}` }]
+      : []),
+  ],
+};
+---
+
+<Layout
+  title={`${filterTag ? `#${filterTag} ` : ""}${t.title}${page > 1 ? ` · ${t.pageOf} ${page}${t.pageSuffix}` : ""} | ${SITE.title}`}
+  description={t.metaDesc}
+>
+  <Fragment slot="head">
+    <link rel="canonical" href={canonicalUrl} />
+    {prevUrl && <link rel="prev" href={prevUrl} />}
+    {nextUrl && <link rel="next" href={nextUrl} />}
+    <script type="application/ld+json" set:html={JSON.stringify(collectionSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
+
+  <Header />
+
+  <div class="mx-auto flex max-w-6xl">
+    <LeftSidebar />
+
+    <main class="flex-1 min-w-0 px-4 py-8">
+      <!-- 页头 -->
+      <div class="mb-6">
+        <nav class="mb-3 text-sm text-skin-muted">
+          <a href={basePath || "/"} class="hover:underline">{t.breadHome}</a>
+          <span class="mx-2">/</span>
+          <span class="text-skin-base">{t.breadNews}</span>
+          {filterTag && (
+            <>
+              <span class="mx-2">/</span>
+              <span class="text-skin-base">#{filterTag}</span>
+            </>
+          )}
+        </nav>
+        <h1 class="text-2xl font-bold text-skin-base">
+          {filterTag ? `#${filterTag} ${t.tagTitle}` : t.title}
+        </h1>
+        <p class="mt-1 text-sm text-skin-muted">
+          {filterTag ? t.tagSubtitle : t.subtitle}
+        </p>
+        {totalCount > 0 && (
+          <p class="mt-1 text-xs text-skin-muted">
+            {t.totalPrefix} {totalCount} {t.totalSuffix} · {t.pageOf} {page}/{totalPages}{t.pageSuffix}
+          </p>
+        )}
+      </div>
+
+      <div class="flex gap-8">
+        <!-- 文章列表 -->
+        <section class="flex-1 min-w-0">
+          {filterTag && (
+            <div class="mb-4 flex items-center gap-2 text-sm">
+              <span class="text-skin-muted">{t.filterLabel}</span>
+              <span class="rounded bg-skin-accent/10 px-2 py-0.5 text-skin-accent font-medium">#{filterTag}</span>
+              <a href={`${basePath}/news`} class="text-skin-muted hover:text-skin-accent ml-2">{t.clearFilter}</a>
+            </div>
+          )}
+
+          {pagePosts.length === 0 ? (
+            <p class="py-12 text-center text-skin-muted">{t.empty}</p>
+          ) : (
+            <div class="space-y-0 divide-y divide-skin-line">
+              {pagePosts.map((p: SanityPost) => (
+                <article class="group flex gap-4 py-4 hover:bg-skin-fill/50 transition-colors rounded-lg px-2 -mx-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+                      {p.articleType && (
+                        <span class={`rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none ${typeColorMap[p.articleType] || typeColorMap.news}`}>
+                          {typeLabelMap[p.articleType] || t.typeNews}
+                        </span>
+                      )}
+                      {(p.tags || []).slice(0, 3).map((tag: string) => (
+                        <a
+                          href={`${basePath}/news?tag=${tag}`}
+                          class="rounded bg-skin-fill px-1.5 py-0.5 text-[10px] text-skin-muted hover:text-skin-accent hover:bg-skin-accent/10 transition-colors"
+                        >
+                          #{tag}
+                        </a>
+                      ))}
+                    </div>
+                    <h2 class="font-semibold text-skin-base leading-snug mb-1 text-sm sm:text-base">
+                      <a href={`${basePath}/news/${p.slug.current}`} class="hover:text-skin-accent transition-colors line-clamp-2">
+                        {p.title}
+                      </a>
+                    </h2>
+                    {p.description && (
+                      <p class="text-xs text-skin-muted leading-relaxed line-clamp-2 mb-1">
+                        {p.description}
+                      </p>
+                    )}
+                    <div class="flex items-center gap-2 text-xs text-skin-muted">
+                      <time datetime={p.pubDatetime}>{formatDate(p.pubDatetime)}</time>
+                      {p.sourceName && <span>· {p.sourceName}</span>}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <!-- Mid-article affiliate -->
+          {page === 1 && <BinanceBanner variant="mid" lang={lang} />}
+
+          <!-- 分页导航 -->
+          <nav class="mt-8 flex items-center justify-between border-t border-skin-line pt-6" aria-label={t.paginationLabel}>
+            {hasPrevPage ? (
+              <a href={pageHref(page - 1)}
+                 rel="prev"
+                 class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+                &larr; {t.prev}
+              </a>
+            ) : (
+              <span class="rounded-lg border border-skin-line/40 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+                &larr; {t.prev}
+              </span>
+            )}
+
+            <span class="text-sm text-skin-muted">{t.pageOf} {page}/{totalPages}{t.pageSuffix}</span>
+
+            {hasNextPage ? (
+              <a href={pageHref(page + 1)}
+                 rel="next"
+                 class="rounded-lg border border-skin-line px-4 py-2 text-sm font-medium text-skin-base hover:border-skin-accent hover:text-skin-accent transition-colors">
+                {t.next} &rarr;
+              </a>
+            ) : (
+              <span class="rounded-lg border border-skin-line/40 px-4 py-2 text-sm text-skin-muted cursor-not-allowed">
+                {t.next} &rarr;
+              </span>
+            )}
+          </nav>
+
+          <!-- Subscribe CTA on page 1 -->
+          {page === 1 && (
+            <div class="mt-8">
+              <SubscribeForm variant="full" lang={lang} />
+            </div>
+          )}
+        </section>
+
+        <!-- 侧边标签栏 -->
+        {hotTags.length > 0 && (
+          <aside class="hidden lg:block w-56 shrink-0">
+            <div class="sticky top-20">
+              <h3 class="mb-3 text-sm font-semibold text-skin-base">{t.hotTags}</h3>
+              <div class="flex flex-wrap gap-2">
+                {hotTags.map(tag => (
+                  <a
+                    href={`${basePath}/news?tag=${tag}`}
+                    class={`rounded px-2.5 py-1 text-xs transition-colors
+                      ${filterTag === tag
+                        ? "bg-skin-accent text-white"
+                        : "bg-skin-fill text-skin-muted hover:text-skin-accent hover:bg-skin-accent/10"}`}
+                  >
+                    #{tag}
+                  </a>
+                ))}
+              </div>
+              <div class="mt-4">
+                <a href={`${basePath}/tags`} class="text-xs text-skin-accent hover:underline">{t.allTags}</a>
+              </div>
+            </div>
+          </aside>
+        )}
+      </div>
+    </main>
+  </div>
+
+  <Footer />
+</Layout>

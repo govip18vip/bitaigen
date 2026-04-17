@@ -12,10 +12,23 @@ function getContainer(): HTMLDivElement {
   return container;
 }
 
+/** Announce the toast message to screen readers via global #a11y-live. */
+function announce(message: string) {
+  const live = document.getElementById("a11y-live");
+  if (!live) return;
+  // Clear first so the same message re-triggers announcement
+  live.textContent = "";
+  // Small delay ensures AT re-reads the text
+  setTimeout(() => { live.textContent = message; }, 30);
+}
+
 export function showToast(message: string, duration = 2500) {
+  announce(message);
+
   const c = getContainer();
   const el = document.createElement("div");
   el.textContent = message;
+  el.setAttribute("role", "status");
   el.style.cssText = "padding:10px 20px;background:var(--fg);color:var(--bg);border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.2);pointer-events:auto;opacity:0;transform:translateY(10px);transition:opacity 0.25s,transform 0.25s;white-space:nowrap;";
   c.appendChild(el);
 

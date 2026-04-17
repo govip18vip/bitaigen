@@ -1,0 +1,83 @@
+---
+// src/pages/subscribe/confirmed.astro
+// Shown after GET /api/subscribe/confirm succeeds — email is now in the audience.
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import LeftSidebar from "@/components/LeftSidebar.astro";
+import { SITE } from "@/config";
+import { getLang } from "@/i18n/ui";
+
+export const prerender = false;
+
+const lang = getLang(Astro.url);
+const replayed = Astro.url.searchParams.get("replayed") === "1";
+
+const COPY: Record<string, { title: string; h1: string; h1Repeat: string; p: string; pRepeat: string; home: string }> = {
+  "zh-CN": {
+    title:    "订阅已确认",
+    h1:       "✅ 订阅成功！",
+    h1Repeat: "您已订阅",
+    p:        "感谢您确认订阅 Bitaigen 区块链资讯简报。我们已向您发送一封欢迎邮件，接下来您将第一时间收到精选的加密货币资讯。",
+    pRepeat:  "看起来您已经确认过这个订阅。一切就绪 — 无需再次操作。",
+    home:     "开始阅读资讯",
+  },
+  "zh-TW": {
+    title:    "訂閱已確認",
+    h1:       "✅ 訂閱成功！",
+    h1Repeat: "您已訂閱",
+    p:        "感謝您確認訂閱 Bitaigen 區塊鏈資訊快報。我們已向您發送一封歡迎郵件，接下來您將第一時間收到精選的加密貨幣資訊。",
+    pRepeat:  "看起來您已經確認過這個訂閱。一切就緒 — 無需再次操作。",
+    home:     "開始閱讀資訊",
+  },
+  "en": {
+    title:    "Subscription confirmed",
+    h1:       "✅ You're in!",
+    h1Repeat: "Already subscribed",
+    p:        "Thanks for confirming your subscription to Bitaigen. A welcome email is on the way — you'll start receiving our crypto newsletter shortly.",
+    pRepeat:  "Looks like you've already confirmed this subscription. You're all set.",
+    home:     "Start reading",
+  },
+  "es": {
+    title:    "Suscripción confirmada",
+    h1:       "✅ ¡Listo!",
+    h1Repeat: "Ya estás suscrito",
+    p:        "Gracias por confirmar tu suscripción a Bitaigen. Te hemos enviado un correo de bienvenida y pronto recibirás nuestras noticias cripto.",
+    pRepeat:  "Parece que ya confirmaste esta suscripción. Todo está listo.",
+    home:     "Empezar a leer",
+  },
+  "pt": {
+    title:    "Inscrição confirmada",
+    h1:       "✅ Tudo certo!",
+    h1Repeat: "Você já está inscrito",
+    p:        "Obrigado por confirmar sua inscrição no Bitaigen. Um e-mail de boas-vindas está a caminho e em breve você receberá nossas notícias cripto.",
+    pRepeat:  "Parece que você já confirmou esta inscrição. Tudo pronto.",
+    home:     "Começar a ler",
+  },
+};
+
+const c = COPY[lang] ?? COPY["zh-CN"];
+const heading = replayed ? c.h1Repeat : c.h1;
+const body    = replayed ? c.pRepeat : c.p;
+---
+
+<Layout
+  title={`${c.title} | ${SITE.title}`}
+  description={c.p}
+  noindex={true}
+>
+  <Header />
+  <div class="site-outer">
+    <LeftSidebar />
+    <main class="main-col" style="padding:60px 20px;" id="main-content">
+      <div style="max-width:560px;margin:0 auto;text-align:center;">
+        <h1 style="font-size:28px;font-weight:800;color:var(--fg);margin:0 0 16px;line-height:1.3;">{heading}</h1>
+        <p style="font-size:16px;color:var(--fg-muted);line-height:1.7;margin:0 0 32px;">{body}</p>
+        <a href="/" class="btn-primary" style="display:inline-block;padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+          {c.home}
+        </a>
+      </div>
+    </main>
+  </div>
+  <Footer />
+</Layout>
