@@ -81,6 +81,11 @@ const navGroups = TAXONOMY.slice(2).map(cat => ({
       <span data-i18n="nav.news">{t("nav.news")}</span>
     </a>
 
+    <a href="/archives"
+      class:list={["lnav-item", { active: isActive("/archives") }]}>
+      <span data-i18n="footer.link.archives">{t("footer.link.archives")}</span>
+    </a>
+
     <!-- Taxonomy groups: prices, learn, tools, defi -->
     {navGroups.map(g => (
       <div class="lnav-group" id={`group-${g.key}`}>

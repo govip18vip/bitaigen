@@ -36,8 +36,16 @@ export default defineConfig({
 
   integrations: [
     sitemap({
+      // SSR 页面不会被自动收集，手动添加 /archives 入口
+      customPages: SITE.showArchives
+        ? [
+            `${SITE.website}archives`,
+            `${SITE.website}archives/page/2`,
+          ]
+        : [],
       filter: page =>
-        (SITE.showArchives || !page.endsWith("/archives")) &&
+        !page.endsWith("/archives") &&   // customPages 已手动添加，避免重复
+        !page.includes("/archives/page/") &&
         !page.includes("/go/") &&
         !page.includes("/404"),
       serialize(item) {
@@ -47,6 +55,10 @@ export default defineConfig({
         if (url === SITE.website || url === SITE.website + "/") {
           changefreq = "daily";
           priority = 1.0;
+        } else if (url.includes("/archives") && !url.includes("/archives/page/")) {
+          // Archives 首页：每日更新，高优先级
+          changefreq = "daily";
+          priority = 0.85;
         } else if (url.includes("/price/")) {
           changefreq = "hourly";
           priority = 0.9;

@@ -112,7 +112,7 @@ const articleSchema = {
       <nav class="pd-breadcrumb" aria-label="breadcrumb">
         <a href={lang === "zh-CN" ? "/" : `/${lang.toLowerCase()}/`}>{t("nav.home")}</a>
         <span aria-hidden="true">›</span>
-        <a href="/archives/">{t("nav.news")}</a>
+        <a href="/archives">{t("footer.link.archives")}</a>
         <span aria-hidden="true">›</span>
         <span class="pd-breadcrumb-current">{post.title.length > 30 ? post.title.slice(0,30) + "…" : post.title}</span>
       </nav>
@@ -131,7 +131,7 @@ const articleSchema = {
           {publicTags.length > 0 && (
             <div class="pd-tags">
               {publicTags.map(tag => (
-                <a href={`/archives/?tag=${tag.slug}&lang=${lang}`} class="pd-tag">{tag.name}</a>
+                <a href={`/archives?tag=${tag.slug}&lang=${lang}`} class="pd-tag">{tag.name}</a>
               ))}
             </div>
           )}
@@ -200,7 +200,7 @@ const articleSchema = {
                   style={`display:flex;gap:12px;padding:12px 0;text-decoration:none;color:var(--fg);transition:color 0.12s;${i < related.length-1 ? "border-bottom:1px solid var(--border-subtle);" : ""}`}
                   onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--fg)'"
                 >
-                  {rp.feature_image && <img src={rp.feature_image} alt="" loading="lazy" style="width:80px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;" />}
+                  {rp.feature_image && <img src={rp.feature_image} alt="" loading="lazy" style="width:80px;height:56px;object-fit:cover;border-radius:0;flex-shrink:0;outline:1px solid var(--border);" />}
                   <div style="flex:1;min-width:0;">
                     <div style="font-size:14px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{rp.title}</div>
                     <div style="font-size:11px;color:var(--fg-light);margin-top:4px;">{new Date(rp.published_at).toLocaleDateString()}</div>
@@ -238,52 +238,368 @@ const articleSchema = {
 </Layout>
 
 <style>
+/* ── Post detail page layout ────────────────────────────── */
+.post-detail-col {
+  padding-bottom: 40px;
+}
+
+/* ── Breadcrumb ─────────────────────────────────────────── */
+.pd-breadcrumb {
+  padding: 12px 20px 0;
+  font-size: 13px;
+  color: var(--fg-muted);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.pd-breadcrumb::-webkit-scrollbar { display: none; }
+.pd-breadcrumb a {
+  color: var(--fg-muted);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.pd-breadcrumb a:hover { color: var(--accent); }
+.pd-breadcrumb span { margin: 0 6px; opacity: 0.5; }
+.pd-breadcrumb-current { color: var(--fg); }
+
+/* ── Layout: article + TOC sidebar ─────────────────────── */
+.pd-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 32px;
+  padding: 0 20px;
+  align-items: start;
+}
+
+.pd-article-col {
+  min-width: 0;
+}
+
+/* ── Hero image ─────────────────────────────────────────── */
+.pd-hero-img {
+  margin: 16px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.pd-hero-img img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Tags row ───────────────────────────────────────────── */
+.pd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.pd-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--tag-orange-bg);
+  color: var(--tag-orange);
+  transition: opacity 0.12s;
+}
+.pd-tag:hover { opacity: 0.8; }
+
+/* ── Title ──────────────────────────────────────────────── */
+.pd-title {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--fg);
+  margin: 0 0 12px;
+  word-break: break-word;
+  letter-spacing: -0.01em;
+}
+
+/* ── Meta row ───────────────────────────────────────────── */
+.pd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--fg-muted);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.pd-author {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+/* ── Description ────────────────────────────────────────── */
+.pd-description {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--fg-muted);
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--accent);
+}
+
+/* ── Prose overrides ────────────────────────────────────── */
+.pd-prose {
+  max-width: none;
+  padding: 0;
+}
+
+/* ── Banners ────────────────────────────────────────────── */
+.pd-banner-mid { margin: 24px 0 8px; }
+.pd-banner-article { margin: 8px 0 16px; }
+
+/* ── Divider ────────────────────────────────────────────── */
+.pd-divider {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 16px 0;
+}
+
+/* ── Bottom tags + share ────────────────────────────────── */
+.pd-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-top: 16px;
+}
+.pd-bottom-tags ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── Translation box ────────────────────────────────────── */
+.translation-box {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-blue, var(--accent));
+  font-size: 13px;
+}
+.translation-label {
+  font-weight: 600;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.translation-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tlang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  background: var(--bg-card);
+  transition: border-color 0.12s, color 0.12s;
+}
+.tlang-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tlang-btn.current {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--tag-orange-bg);
+  cursor: default;
+}
+
+/* ── TOC Sidebar (desktop) ──────────────────────────────── */
+.pd-toc-sidebar {
+  display: block;
+}
+.pd-toc-sticky {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.pd-toc-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.pd-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.pd-toc-item {
+  margin: 0;
+}
+.pd-toc-h3 {
+  padding-left: 14px;
+}
+.pd-toc-link {
+  display: block;
+  padding: 5px 0 5px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  text-decoration: none;
+  transition: color 0.12s;
+  border-left: 2px solid transparent;
+}
+.pd-toc-link:hover,
+.pd-toc-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.pd-toc-link.active {
+  font-weight: 600;
+}
+.pd-toc-banner {
+  margin-top: 20px;
+}
+
+/* ── Ghost content cards ────────────────────────────────── */
 .ghost-content :global(.kg-card) { margin: 1.5em 0; }
-.ghost-content :global(.kg-image-card img) { max-width:100%;height:auto;border-radius:6px; }
-.ghost-content :global(.kg-bookmark-card) { border:1px solid var(--border);border-radius:6px;overflow:hidden; }
+.ghost-content :global(.kg-image-card img) { max-width:100%;height:auto; }
+.ghost-content :global(.kg-bookmark-card) { border:1px solid var(--border);overflow:hidden; }
 .ghost-content :global(.kg-gallery-card) { display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px; }
 .ghost-content :global(figcaption) { text-align:center;font-size:13px;color:var(--fg-muted);margin-top:8px; }
-.ghost-content :global(.kg-callout-card) { padding:16px;border-radius:6px;background:var(--bg-elevated);border-left:3px solid var(--accent); }
+.ghost-content :global(.kg-callout-card) { padding:16px;background:var(--bg-elevated);border-left:3px solid var(--accent); }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .pd-toc-sidebar {
+    display: none;
+  }
+  .pd-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .pd-layout {
+    padding: 0 14px;
+  }
+  .pd-breadcrumb {
+    padding: 10px 14px 0;
+  }
+  .pd-title {
+    font-size: clamp(1.2rem, 5vw, 1.6rem);
+  }
+  .pd-hero-img {
+    margin: 12px -14px;
+    border-left: none;
+    border-right: none;
+  }
+  .pd-description {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+  .pd-meta {
+    font-size: 12px;
+    gap: 8px;
+  }
+  .pd-bottom {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 500px) {
+  .pd-layout { padding: 0 10px; }
+  .pd-breadcrumb { padding: 8px 10px 0; }
+}
 </style>
 
 <script>
+  // TOC scroll-spy — IntersectionObserver variant
+  let tocObserver: IntersectionObserver | null = null;
+
   function initTocSpy() {
-    const tocLinks = document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link");
+    if (tocObserver) { tocObserver.disconnect(); tocObserver = null; }
+
+    const tocLinks = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>(".pd-toc-link")
+    );
     if (!tocLinks.length) return;
 
-    const headingIds = Array.from(tocLinks).map(a => a.getAttribute("href")?.slice(1)).filter(Boolean) as string[];
-    const headingEls = headingIds.map(id => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const headingIds = tocLinks
+      .map(a => a.getAttribute("href")?.slice(1))
+      .filter(Boolean) as string[];
+    // IDs in the HTML are URL-encoded (e.g. %E6%A0%B8...) but getElementById
+    // expects the decoded string — decode before lookup.
+    const headingEls = headingIds
+      .map(id => document.getElementById(decodeURIComponent(id)))
+      .filter(Boolean) as HTMLElement[];
     if (!headingEls.length) return;
 
-    let ticking = false;
+    const visible = new Set<Element>();
 
-    function updateActive() {
-      const scrollY = window.scrollY;
-      let activeIdx = 0;
-
-      for (let i = 0; i < headingEls.length; i++) {
-        if (headingEls[i].offsetTop <= scrollY + 100) {
-          activeIdx = i;
+    function setActive(el: Element | null) {
+      if (!el) return;
+      const idx = headingEls.indexOf(el as HTMLElement);
+      if (idx < 0) return;
+      tocLinks.forEach((link, i) => {
+        link.classList.toggle("active", i === idx);
+      });
+      const activeLink = tocLinks[idx];
+      const container = activeLink?.closest<HTMLElement>(".pd-toc-sticky");
+      if (activeLink && container) {
+        const linkRect = activeLink.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
+          activeLink.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }
-
-      tocLinks.forEach((link, i) => {
-        link.classList.toggle("active", i === activeIdx);
-      });
-      ticking = false;
     }
 
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(updateActive);
-        ticking = true;
-      }
-    }
+    tocObserver = new IntersectionObserver(
+      entries => {
+        for (const e of entries) {
+          if (e.isIntersecting) visible.add(e.target);
+          else visible.delete(e.target);
+        }
+        if (visible.size) {
+          const first = headingEls.find(h => visible.has(h));
+          setActive(first ?? null);
+        } else {
+          const scrollY = window.scrollY + 120;
+          let last: HTMLElement | null = null;
+          for (const h of headingEls) {
+            if (h.getBoundingClientRect().top + window.scrollY <= scrollY) last = h;
+            else break;
+          }
+          setActive(last);
+        }
+      },
+      { rootMargin: "-120px 0px -40% 0px", threshold: 0 }
+    );
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    updateActive();
+    headingEls.forEach(el => tocObserver!.observe(el));
   }
 
   initTocSpy();
   document.addEventListener("astro:after-swap", initTocSpy);
+  document.addEventListener("astro:before-swap", () => {
+    tocObserver?.disconnect(); tocObserver = null;
+  });
 </script>

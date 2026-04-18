@@ -1,6 +1,7 @@
 ---
-// src/pages/archives/index.astro  v2.0
-// Ghost 文章归档列表页 — 第1页 — SSR，?lang=en &tag=btc 过滤
+// src/pages/archives/page/[page].astro  v2.1
+// Ghost 文章归档分页（第2页起，URL: /archives/page/2）— SSR
+// 将 [...page].astro 移到 page/ 子目录，避免与 [slug].astro 冲突
 export const prerender = false;
 
 import Layout from "@/layouts/Layout.astro";
@@ -12,19 +13,20 @@ import { SITE } from "@/config";
 import { getLang, useTranslations, LANG_TO_PATH, LANGUAGES, type Lang } from "@/i18n/ui";
 import { getPosts, type GhostPost, type GhostPagination } from "@/utils/ghost";
 
+const pageParam = Astro.params.page;
+const currentPage = pageParam ? parseInt(pageParam) || 1 : 1;
 const langParam = Astro.url.searchParams.get("lang") as Lang | null;
 const lang: Lang = langParam || getLang(Astro.url);
 const tagFilter = Astro.url.searchParams.get("tag") || undefined;
 const t = useTranslations(lang);
 const base = LANG_TO_PATH[lang] ? `/${LANG_TO_PATH[lang]}` : "";
-const currentPage = 1;
 
 let posts: GhostPost[] = [];
 let pagination: GhostPagination = { page: 1, limit: 20, pages: 1, total: 0, next: null, prev: null };
 let ghostError = false;
 
 try {
-  const data = await getPosts({ page: 1, limit: 20, lang, tag: tagFilter });
+  const data = await getPosts({ page: currentPage, limit: 20, lang, tag: tagFilter });
   posts = data.posts;
   pagination = data.pagination;
 } catch (e) {
@@ -42,33 +44,48 @@ function pageUrl(p: number): string {
 }
 
 const siteOrigin = SITE.website.replace(/\/$/, "");
+const canonicalPath = currentPage === 1 ? "/archives" : `/archives/page/${currentPage}`;
 const canonicalURL = new URL(
-  tagFilter ? `/archives?tag=${tagFilter}${lang !== "zh-CN" ? `&lang=${lang}` : ""}` : "/archives",
+  tagFilter
+    ? `${canonicalPath}?tag=${tagFilter}${lang !== "zh-CN" ? `&lang=${lang}` : ""}`
+    : (lang !== "zh-CN" ? `${canonicalPath}?lang=${lang}` : canonicalPath),
   siteOrigin
 );
-const paginationNext = pagination.pages > 1 ? new URL(pageUrl(2), siteOrigin).toString() : undefined;
+const paginationPrev = currentPage > 1 ? new URL(pageUrl(currentPage - 1), siteOrigin).toString() : undefined;
+const paginationNext = currentPage < pagination.pages ? new URL(pageUrl(currentPage + 1), siteOrigin).toString() : undefined;
 
 const pageTitle = tagFilter ? `${tagFilter} — ${t("section.all")}` : t("section.all");
-// Tag-filtered pages: noindex (thin/duplicate); clean archive page 1: index
 const noindex = !!tagFilter;
 
 const sidebarTags = ["BTC", "ETH", "DeFi", "NFT", "Wallet", "Beginner", "Market"];
 
-// JSON-LD BreadcrumbList
+const pageSuffix = currentPage > 1 ? ` — Page ${currentPage}` : "";
+const fullTitle = `${pageTitle}${pageSuffix} | ${t("site.name")}`;
+
+const breadcrumbItems: Array<{ "@type": string; position: number; name: string; item: string }> = [
+  { "@type": "ListItem", "position": 1, "name": t("nav.home"), "item": `${siteOrigin}/` },
+  { "@type": "ListItem", "position": 2, "name": pageTitle, "item": `${siteOrigin}/archives` },
+];
+if (currentPage > 1) {
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    "position": 3,
+    "name": `Page ${currentPage}`,
+    "item": canonicalURL.toString()
+  });
+}
 const breadcrumbJson = JSON.stringify({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
-  "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": t("nav.home"), "item": `${siteOrigin}/` },
-    { "@type": "ListItem", "position": 2, "name": pageTitle, "item": canonicalURL.toString() },
-  ]
+  "itemListElement": breadcrumbItems
 });
 ---
 
 <Layout
-  title={`${pageTitle} | ${t("site.name")}`}
+  title={fullTitle}
   description={t("site.desc")}
   canonicalURL={canonicalURL.toString()}
+  paginationPrev={paginationPrev}
   paginationNext={paginationNext}
   noindex={noindex}
 >
@@ -86,9 +103,14 @@ const breadcrumbJson = JSON.stringify({
       <nav class="arc-breadcrumb" aria-label="Breadcrumb">
         <a href={base + "/"}>{t("nav.home")}</a>
         <span aria-hidden="true">›</span>
-        <span class="arc-breadcrumb-current" aria-current="page">{pageTitle}</span>
-        {pagination.pages > 1 && (
-          <span class="arc-breadcrumb-page">1 / {pagination.pages}</span>
+        <a href={pageUrl(1)}>{pageTitle}</a>
+        {currentPage > 1 && (
+          <>
+            <span aria-hidden="true">›</span>
+            <span class="arc-breadcrumb-current" aria-current="page">
+              {currentPage} / {pagination.pages}
+            </span>
+          </>
         )}
       </nav>
 
@@ -98,9 +120,9 @@ const breadcrumbJson = JSON.stringify({
           <h1 class="arc-title">{pageTitle}</h1>
           <p class="arc-count">
             {pagination.total.toLocaleString()} {t("archives.articles")}
+            {currentPage > 1 && <span class="arc-count-page"> · Page {currentPage}</span>}
           </p>
         </div>
-        <!-- Language filter pills -->
         <div class="arc-lang-pills">
           {(Object.keys(LANGUAGES) as Lang[]).map(l => {
             const label = l === "zh-CN" ? "简中" : l === "zh-TW" ? "繁中" : l.toUpperCase();
@@ -113,7 +135,6 @@ const breadcrumbJson = JSON.stringify({
         </div>
       </div>
 
-      <!-- Tag filter bar -->
       {tagFilter && (
         <div class="arc-tag-filter">
           <span class="arc-tag-filter-label">{t("section.tags")}:</span>
@@ -122,7 +143,6 @@ const breadcrumbJson = JSON.stringify({
         </div>
       )}
 
-      <!-- Ghost error state -->
       {ghostError && (
         <div class="arc-error">
           <div class="arc-error-inner">
@@ -135,7 +155,6 @@ const breadcrumbJson = JSON.stringify({
         </div>
       )}
 
-      <!-- Article list -->
       {posts.length > 0 ? (
         <div class="arc-list" role="list">
           {posts.map((p, i) => (
@@ -179,14 +198,23 @@ const breadcrumbJson = JSON.stringify({
         </div>
       )}
 
-      <!-- Pagination -->
       {pagination.pages > 1 && (
         <nav class="arc-pagination" aria-label="Pagination">
-          <span class="arc-page-btn disabled" aria-disabled="true">← {t("pagination.prev")}</span>
-          <span class="arc-page-num" aria-current="page">1 / {pagination.pages}</span>
-          <a href={pageUrl(2)} class="arc-page-btn" rel="next">
-            {t("pagination.next")} →
-          </a>
+          {pagination.prev ? (
+            <a href={pageUrl(pagination.prev)} class="arc-page-btn" rel="prev">
+              ← {t("pagination.prev")}
+            </a>
+          ) : (
+            <span class="arc-page-btn disabled" aria-disabled="true">← {t("pagination.prev")}</span>
+          )}
+          <span class="arc-page-num" aria-current="page">{currentPage} / {pagination.pages}</span>
+          {pagination.next ? (
+            <a href={pageUrl(pagination.next)} class="arc-page-btn" rel="next">
+              {t("pagination.next")} →
+            </a>
+          ) : (
+            <span class="arc-page-btn disabled" aria-disabled="true">{t("pagination.next")} →</span>
+          )}
         </nav>
       )}
 
@@ -213,7 +241,6 @@ const breadcrumbJson = JSON.stringify({
 </Layout>
 
 <style>
-  /* ── Breadcrumb ── */
   .arc-breadcrumb {
     padding: 14px 20px 0;
     font-size: 13px;
@@ -223,372 +250,161 @@ const breadcrumbJson = JSON.stringify({
     scrollbar-width: none;
   }
   .arc-breadcrumb::-webkit-scrollbar { display: none; }
-  .arc-breadcrumb a {
-    color: var(--fg-muted);
-    text-decoration: none;
-    transition: color 0.12s;
-  }
+  .arc-breadcrumb a { color: var(--fg-muted); text-decoration: none; transition: color 0.12s; }
   .arc-breadcrumb a:hover { color: var(--accent); }
   .arc-breadcrumb span { margin: 0 6px; opacity: 0.5; }
   .arc-breadcrumb-current { color: var(--fg); margin: 0 !important; opacity: 1 !important; }
-  .arc-breadcrumb-page {
-    font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    color: var(--fg-muted);
-    opacity: 0.7;
-    margin-left: 8px !important;
-  }
 
-  /* ── Page header ── */
   .arc-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px 20px 12px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; padding: 16px 20px 12px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--border); margin-bottom: 4px;
   }
-  .arc-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--fg);
-    margin: 0 0 2px;
-    line-height: 1.3;
-  }
+  .arc-title { font-size: 22px; font-weight: 800; color: var(--fg); margin: 0 0 2px; line-height: 1.3; }
   .arc-count {
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    color: var(--fg-muted);
-    margin: 0;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 11px; color: var(--fg-muted); margin: 0;
+    letter-spacing: 0.04em; text-transform: uppercase;
   }
+  .arc-count-page { color: var(--accent); font-weight: 600; }
 
-  /* ── Language pills ── */
-  .arc-lang-pills {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
+  .arc-lang-pills { display: flex; gap: 4px; flex-wrap: wrap; }
   .arc-lang-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 12px;
-    border-radius: 0;
+    display: inline-flex; align-items: center; padding: 4px 12px;
+    border-radius: 0; border: 1px solid var(--border);
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid var(--border);
-    color: var(--fg-muted);
-    background: transparent;
-    text-decoration: none;
-    transition: all 0.12s;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--fg-muted); background: transparent; text-decoration: none; transition: all 0.12s;
   }
-  .arc-lang-pill:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-  .arc-lang-pill.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
+  .arc-lang-pill:hover { color: var(--accent); border-color: var(--accent); }
+  .arc-lang-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* ── Tag filter bar ── */
   .arc-tag-filter {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 20px;
-    font-size: 13px;
-    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 20px; font-size: 13px; border-bottom: 1px solid var(--border);
   }
   .arc-tag-filter-label {
     color: var(--fg-muted);
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
   }
   .arc-tag-filter-badge {
-    display: inline-flex;
-    padding: 2px 8px;
-    border-radius: 0;
-    border: 1px solid var(--accent);
-    background: transparent;
-    color: var(--accent);
-    font-weight: 600;
-    font-size: 12px;
+    display: inline-flex; padding: 2px 8px; border-radius: 0;
+    border: 1px solid var(--accent); background: transparent; color: var(--accent);
+    font-weight: 600; font-size: 12px;
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    text-transform: uppercase; letter-spacing: 0.04em;
   }
   .arc-tag-filter-clear {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 0;
-    background: var(--bg-elevated);
-    color: var(--fg-muted);
-    font-size: 11px;
-    text-decoration: none;
-    transition: all 0.12s;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 0;
+    background: var(--bg-elevated); color: var(--fg-muted);
+    font-size: 11px; text-decoration: none; transition: all 0.12s;
     border: 1px solid var(--border);
   }
-  .arc-tag-filter-clear:hover {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
+  .arc-tag-filter-clear:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* ── Error ── */
-  .arc-error {
-    padding: 20px;
-  }
+  .arc-error { padding: 20px; }
   .arc-error-inner {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 0;
-    padding: 18px 20px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 0; padding: 18px 20px;
   }
-  .arc-error-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--fg);
-    margin: 0 0 6px;
-  }
-  .arc-error-desc {
-    font-size: 13px;
-    color: var(--fg-muted);
-    margin: 0;
-  }
-  .arc-error-desc a {
-    color: var(--accent);
-    text-decoration: none;
-    margin-left: 4px;
-  }
+  .arc-error-title { font-size: 14px; font-weight: 700; color: var(--fg); margin: 0 0 6px; }
+  .arc-error-desc { font-size: 13px; color: var(--fg-muted); margin: 0; }
+  .arc-error-desc a { color: var(--accent); text-decoration: none; margin-left: 4px; }
 
-  /* ── Article list ── */
-  .arc-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 0 12px;
-  }
+  .arc-list { display: flex; flex-direction: column; gap: 0; padding: 0 12px; }
 
   .arc-card {
-    display: flex;
-    gap: 16px;
-    padding: 16px 8px;
-    text-decoration: none;
-    color: inherit;
-    border-radius: 0;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.12s, border-color 0.12s;
+    display: flex; gap: 16px; padding: 16px 8px;
+    text-decoration: none; color: inherit; border-radius: 0;
+    border-bottom: 1px solid var(--border); transition: background 0.12s;
   }
-  .arc-card:first-child {
-    border-top: 2px solid var(--accent);
-  }
-  .arc-card:hover {
-    background: var(--bg-elevated);
-  }
+  .arc-card:first-child { border-top: 2px solid var(--accent); }
+  .arc-card:hover { background: var(--bg-elevated); }
 
   .arc-card-thumb {
-    width: 160px;
-    min-width: 160px;
-    height: 100px;
-    border-radius: 0;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: var(--bg-elevated);
-    outline: 1px solid var(--border);
+    width: 160px; min-width: 160px; height: 100px;
+    border-radius: 0; overflow: hidden; flex-shrink: 0;
+    background: var(--bg-elevated); outline: 1px solid var(--border);
   }
   .arc-card-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.3s ease;
+    width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease;
   }
-  .arc-card:hover .arc-card-thumb img {
-    transform: scale(1.05);
-  }
+  .arc-card:hover .arc-card-thumb img { transform: scale(1.05); }
   .arc-card-thumb-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    opacity: 0.4;
+    display: flex; align-items: center; justify-content: center; font-size: 24px; opacity: 0.4;
   }
 
   .arc-card-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
+    flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px;
   }
 
   .arc-card-tag {
-    display: inline-block;
-    width: fit-content;
-    padding: 1px 6px;
-    border-radius: 0;
-    border-left: 2px solid var(--accent);
+    display: inline-block; width: fit-content; padding: 1px 6px;
+    border-radius: 0; border-left: 2px solid var(--accent);
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: transparent;
-    color: var(--accent);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    background: transparent; color: var(--accent);
   }
 
   .arc-card-title {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.4;
-    color: var(--fg);
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.12s;
+    font-size: 16px; font-weight: 700; line-height: 1.4; color: var(--fg); margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; transition: color 0.12s;
   }
-  .arc-card:hover .arc-card-title {
-    color: var(--accent);
-  }
+  .arc-card:hover .arc-card-title { color: var(--accent); }
 
   .arc-card-desc {
-    font-size: 13px;
-    color: var(--fg-muted);
-    line-height: 1.6;
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 13px; color: var(--fg-muted); line-height: 1.6; margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
 
   .arc-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--fg-light);
-    margin-top: 4px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--fg-light); margin-top: 4px;
   }
   .arc-dot { opacity: 0.4; }
 
-  /* ── Empty state ── */
-  .arc-empty {
-    padding: 80px 20px;
-    text-align: center;
-    color: var(--fg-muted);
-  }
-  .arc-empty-icon {
-    font-size: 32px;
-    display: block;
-    margin-bottom: 8px;
-  }
-  .arc-empty p {
-    font-size: 14px;
-    margin: 0;
-  }
+  .arc-empty { padding: 80px 20px; text-align: center; color: var(--fg-muted); }
+  .arc-empty-icon { font-size: 32px; display: block; margin-bottom: 8px; }
+  .arc-empty p { font-size: 14px; margin: 0; }
 
-  /* ── Pagination ── */
   .arc-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 24px 20px;
-    border-top: 1px solid var(--border);
-    margin: 8px 12px 0;
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 24px 20px;
+    border-top: 1px solid var(--border); margin: 8px 12px 0;
   }
   .arc-page-btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 18px;
-    border: 1px solid var(--border);
-    border-radius: 0;
+    display: inline-flex; align-items: center; padding: 8px 18px;
+    border: 1px solid var(--border); border-radius: 0;
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--fg);
-    text-decoration: none;
-    transition: all 0.12s;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--fg); text-decoration: none; transition: all 0.12s;
   }
   .arc-page-btn:not(.disabled):hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--bg-elevated);
+    border-color: var(--accent); color: var(--accent); background: var(--bg-elevated);
   }
-  .arc-page-btn.disabled {
-    color: var(--fg-muted);
-    opacity: 0.35;
-    pointer-events: none;
-    cursor: default;
-  }
+  .arc-page-btn.disabled { color: var(--fg-muted); opacity: 0.35; pointer-events: none; cursor: default; }
   .arc-page-num {
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--fg-muted);
-    min-width: 60px;
-    text-align: center;
-    letter-spacing: 0.04em;
+    font-size: 13px; font-weight: 600; color: var(--fg-muted);
+    min-width: 60px; text-align: center; letter-spacing: 0.04em;
   }
 
-  /* ── Sidebar tags ── */
-  .arc-sidebar-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 10px;
-  }
+  .arc-sidebar-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
   .arc-sidebar-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 0;
+    display: inline-block; padding: 3px 10px; border-radius: 0;
     font-family: var(--font-mono-ui, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    border: 1px solid var(--border);
-    color: var(--fg-muted);
-    background: transparent;
-    text-decoration: none;
-    transition: all 0.12s;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    border: 1px solid var(--border); color: var(--fg-muted); background: transparent;
+    text-decoration: none; transition: all 0.12s;
   }
-  .arc-sidebar-tag:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-  .arc-sidebar-tag.active {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
+  .arc-sidebar-tag:hover { color: var(--accent); border-color: var(--accent); }
+  .arc-sidebar-tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* ── Responsive ── */
   @media (max-width: 768px) {
-    .arc-header {
-      padding: 12px 14px 10px;
-      flex-direction: column;
-      align-items: flex-start;
-    }
+    .arc-header { padding: 12px 14px 10px; flex-direction: column; align-items: flex-start; }
     .arc-breadcrumb { padding: 10px 14px 0; }
     .arc-list { padding: 0 4px; }
     .arc-card { padding: 12px 6px; gap: 10px; }
@@ -597,7 +413,6 @@ const breadcrumbJson = JSON.stringify({
     .arc-card-desc { display: none; }
     .arc-pagination { margin: 8px 4px 0; }
   }
-
   @media (max-width: 500px) {
     .arc-card-thumb { width: 88px; min-width: 88px; height: 58px; }
     .arc-card-title { font-size: 13.5px; }
