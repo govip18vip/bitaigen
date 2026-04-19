@@ -12,6 +12,8 @@ import { LANG_PATH_MAP, LANG_TO_PATH, type Lang } from "@/i18n/ui";
 import { sanityClient } from "@/utils/sanity";
 import type { SanityPost } from "@/utils/sanity";
 
+export const prerender = false;
+
 const LANG_LABEL: Record<string, { title: string; desc: string }> = {
   "zh-TW": {
     title: `${SITE.title} — 加密貨幣資訊`,
