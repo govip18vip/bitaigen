@@ -2,7 +2,7 @@ export const SITE = {
   website: "https://bitaigen.com/",
   author: "Bitaigen",
   profile: "https://bitaigen.com/about",
-  desc: "Professional blockchain news platform — Bitcoin price analysis, exchange tutorials, crypto wallet security guides, DeFi protocol deep dives. 专业区块链资讯平台。",
+  desc: "Bitaigen — Bitcoin price, crypto news & exchange tutorials. Binance/OKX guides, DeFi, wallet security and blockchain analysis. 比特根 — 专业加密货币与区块链资讯平台。",
   title: "Bitaigen",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,

@@ -44,7 +44,7 @@ const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
-  keywords,
+  keywords = UI[lang]?.["site.keywords"],
   description = UI[lang]?.["site.desc"] ?? SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   ogType = "website",
@@ -140,6 +140,7 @@ const socialImageURL = new URL(ogImage, Astro.url);
     <meta property="og:url"         content={canonicalURL} />
     <meta property="og:image"       content={socialImageURL} />
     <meta property="og:locale"      content={lang.replace("-", "_")} />
+    <meta property="og:site_name"   content={SITE.title} />
 
     <!-- Twitter -->
     <meta property="twitter:card"        content="summary_large_image" />
