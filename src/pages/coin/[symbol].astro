@@ -87,6 +87,19 @@ const faqs = [
   ...(coin.consensus ? [{ q: `${coin.name[lang]} 使用什么共识机制？`, a: `${coin.name[lang]} 使用 ${coin.consensus} 共识机制${coin.blockTime ? `，出块时间约 ${coin.blockTime}` : ""}${coin.maxSupply ? `，最大供应量为 ${coin.maxSupply}` : ""}。` }] : []),
 ];
 
+// ── 服务端获取实时价格（写入 JSON-LD，让 Googlebot 能读到）──
+let livePrice: number | null = null;
+try {
+  const r = await fetch(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`,
+    { signal: AbortSignal.timeout(5000) }
+  );
+  if (r.ok) {
+    const d = await r.json();
+    livePrice = d?.[coinId]?.usd ?? null;
+  }
+} catch {}
+
 // Schema.org
 const coinSchema = {
   "@context": "https://schema.org",
@@ -149,12 +162,20 @@ const productSchema = {
     name: "Binance",
     url: "https://www.binance.com",
   },
-  // offers 占位：由客户端 JS 在价格加载后动态补 priceCurrency/price 到 window.__product.
   offers: {
     "@type": "Offer",
     priceCurrency: "USD",
+    ...(livePrice !== null
+      ? { price: String(livePrice) }
+      : { priceSpecification: { "@type": "PriceSpecification", priceCurrency: "USD", description: "Real-time price, updated every 60 seconds" } }
+    ),
     availability: "https://schema.org/InStock",
     url: `https://www.binance.com/trade/${coinSymbol}_USDT?ref=B2345`,
+    seller: {
+      "@type": "Organization",
+      name: "Binance",
+      url: "https://www.binance.com",
+    },
   },
 };
 ---
