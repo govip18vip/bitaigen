@@ -75,6 +75,10 @@ export default defineConfig({
         ) {
           changefreq = "weekly";
           priority = 0.8;
+        } else if (url.match(/\/binance\/?$/) || url.match(/\/binance\/[^/]+\/?$/)) {
+          // 币安专题 pillar + 12 子页面
+          changefreq = "monthly";
+          priority = url.match(/\/binance\/?$/) ? 0.85 : 0.8;
         } else if (url.includes("/tags/")) {
           changefreq = "weekly";
           priority = 0.7;
