@@ -372,6 +372,45 @@ const websiteSchema = {
         </div>
       </section>
 
+      {/* ══ BINANCE TOPIC CLUSTER PROMO ══ */}
+      <section style="padding:0 16px 20px;" aria-label="币安专题" class="anim-3">
+        <div class="sec-head" style="padding-left:0;">
+          <span class="sec-head-title">🏦 币安完全指南</span>
+          <a href="/binance" class="sec-head-more">全部教程 →</a>
+        </div>
+        <a href="/binance" style="display:flex;align-items:center;gap:14px;padding:16px;background:linear-gradient(135deg,rgba(240,185,11,0.08),rgba(240,185,11,0.03));border:1px solid rgba(240,185,11,0.3);border-radius:10px;text-decoration:none;margin-top:10px;margin-bottom:10px;transition:border-color 0.15s,background 0.15s;"
+          onmouseover="this.style.borderColor='rgba(240,185,11,0.6)';this.style.background='rgba(240,185,11,0.12)'"
+          onmouseout="this.style.borderColor='rgba(240,185,11,0.3)';this.style.background='linear-gradient(135deg,rgba(240,185,11,0.08),rgba(240,185,11,0.03))'"
+        >
+          <div style="width:44px;height:44px;border-radius:10px;background:#F0B90B;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;">🏦</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:3px;">币安Binance 2026完全使用指南</div>
+            <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">注册 · 下载 · KYC · 充值 · 交易 · 安全 — 12大专题一站覆盖，邀请码 <strong style="color:#F0B90B;">B2345</strong> 享折扣</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0B90B" stroke-width="2.5" style="flex-shrink:0;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;">
+          {[
+            { label: "📝 注册账户", href: "/binance/register" },
+            { label: "📱 APP下载", href: "/binance/download" },
+            { label: "🪪 KYC认证", href: "/binance/kyc" },
+            { label: "💰 充值入金", href: "/binance/deposit" },
+            { label: "📤 提币出金", href: "/binance/withdraw" },
+            { label: "📊 现货交易", href: "/binance/spot" },
+            { label: "⚡ 合约期货", href: "/binance/futures" },
+            { label: "💱 P2P交易", href: "/binance/p2p" },
+          ].map(item => (
+            <a href={item.href}
+              style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;color:var(--fg-muted);transition:all 0.12s;"
+              onmouseover="this.style.borderColor='#F0B90B';this.style.color='var(--fg)'"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--fg-muted)'"
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </section>
+
       {/* ══ TUTORIAL QUICK LINKS ══ */}
       <section style="padding:0 16px 20px;" aria-label="教程指南" class="anim-3">
         <div class="sec-head" style="padding-left:0;">
@@ -380,14 +419,14 @@ const websiteSchema = {
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px;">
           {[
-            { label: "币安注册教程", href: "/posts/zh-cn/binance-register-guide-zh-cn", icon: "🏦" },
+            { label: "币安注册教程", href: "/binance/register", icon: "🏦" },
             { label: "OKX注册教程", href: "/posts/zh-cn/okx-register-guide-zh-cn", icon: "🏦" },
             { label: "如何购买BTC", href: "/posts/zh-cn/how-to-buy-btc-zh-cn", icon: "₿" },
-            { label: "如何购买USDT", href: "/posts/zh-cn/how-to-buy-usdt-p2p-zh-cn", icon: "💵" },
+            { label: "如何购买USDT", href: "/binance/p2p", icon: "💵" },
             { label: "MetaMask教程", href: "/posts/zh-cn/metamask-tutorial-zh-cn", icon: "🦊" },
             { label: "新手入门指南", href: "/posts/zh-cn/crypto-beginner-guide-2026-zh-cn", icon: "📚" },
-            { label: "交易所排名", href: "/posts/zh-cn/crypto-exchange-ranking-2026-zh-cn", icon: "🏆" },
-            { label: "币安vs OKX", href: "/posts/zh-cn/binance-vs-okx-comparison-zh-cn", icon: "⚖️" },
+            { label: "币安手续费", href: "/binance/fees", icon: "💸" },
+            { label: "币安安全设置", href: "/binance/security", icon: "🔒" },
           ].map(item => (
             <a href={item.href}
               style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-decoration:none;font-size:12.5px;font-weight:500;color:var(--fg);transition:border-color 0.12s;"
@@ -510,6 +549,12 @@ const websiteSchema = {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
           {[
             {
+              label: "🏦 币安",
+              href: "/binance",
+              bg: "rgba(240,185,11,0.1)",
+              color: "#F0B90B",
+            },
+            {
               label: "₿ BTC",
               href: "/tags/btc",
               bg: "var(--tag-orange-bg)",
@@ -526,12 +571,6 @@ const websiteSchema = {
               href: "/tags/wallet",
               bg: "var(--tag-blue-bg)",
               color: "var(--accent-blue)",
-            },
-            {
-              label: "📖 教程",
-              href: "/tags/docs",
-              bg: "rgba(167,139,250,.12)",
-              color: "#a78bfa",
             },
             {
               label: "📊 行情",
