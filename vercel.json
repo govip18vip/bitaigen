@@ -44,6 +44,81 @@
       "has": [{ "type": "query", "key": "hl" }],
       "destination": "/:path*",
       "permanent": true
+    },
+    {
+      "source": "/tag/:slug",
+      "destination": "/tags/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/tag/:slug/:rest*",
+      "destination": "/tags/:slug/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/category/:slug",
+      "destination": "/tags/:slug",
+      "permanent": true
+    },
+    {
+      "source": "/category/:slug/:rest*",
+      "destination": "/tags/:slug/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/page/1",
+      "destination": "/archives",
+      "permanent": true
+    },
+    {
+      "source": "/page/:n",
+      "destination": "/archives/page/:n",
+      "permanent": true
+    },
+    {
+      "source": "/news/page/:rest*",
+      "destination": "/news",
+      "permanent": true
+    },
+    {
+      "source": "/en/archives/:slug*",
+      "destination": "/archives/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/zh-tw/archives/:slug*",
+      "destination": "/archives/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/es/archives/:slug*",
+      "destination": "/archives/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/pt/archives/:slug*",
+      "destination": "/archives/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/sitemap-index.xml",
+      "permanent": true
+    },
+    {
+      "source": "/feed",
+      "destination": "/rss.xml",
+      "permanent": true
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "/rss.xml",
+      "permanent": true
+    },
+    {
+      "source": "/rss",
+      "destination": "/rss.xml",
+      "permanent": true
     }
   ],
   "rewrites": [
