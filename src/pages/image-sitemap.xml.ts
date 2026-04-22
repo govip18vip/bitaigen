@@ -18,11 +18,24 @@ type SanityRow = {
 };
 
 function xmlEsc(s: string): string {
+  if (!s || typeof s !== "string") return "";
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    // Strip control characters not allowed in XML
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return url.startsWith("http");
+  } catch {
+    return false;
+  }
 }
 
 function sanityUrl(base: string, lang: Lang, slug: string): string {
@@ -46,7 +59,7 @@ export async function GET() {
     const hero = (post.data as any).heroImage;
     const og = (post.data as any).ogImage;
     const imgSrc = hero || og;
-    if (typeof imgSrc === "string" && imgSrc.startsWith("http")) {
+    if (typeof imgSrc === "string" && isValidUrl(imgSrc)) {
       images.push(imgSrc);
     }
 
@@ -95,15 +108,13 @@ ${imageBlocks}
     } catch {
       continue;
     }
-    if (!imgUrl) continue;
+    if (!imgUrl || !isValidUrl(imgUrl)) continue;
 
-    sanityEntries.push(`  <url>
-    <loc>${url}</loc>
-      <image:image>
-        <image:loc>${xmlEsc(imgUrl)}</image:loc>
-        <image:caption>${xmlEsc(row.title ?? "")}</image:caption>
-      </image:image>
-  </url>`);
+    const safeTitle = xmlEsc(row.title ?? "").slice(0, 200);
+    const safeImgUrl = xmlEsc(imgUrl);
+    const safePageUrl = xmlEsc(url);
+
+    sanityEntries.push(`  <url>\n    <loc>${safePageUrl}</loc>\n    <image:image>\n      <image:loc>${safeImgUrl}</image:loc>\n      <image:caption>${safeTitle}</image:caption>\n    </image:image>\n  </url>`);
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
