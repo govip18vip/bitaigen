@@ -333,20 +333,20 @@ const faqSchema = {
       </div>
     </section>
 
-    <!-- FAQ -->
-    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:24px;" itemscope itemtype="https://schema.org/FAQPage">
+    <!-- FAQ — schema is JSON-LD only, no microdata to avoid duplicates -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:26px;margin-bottom:24px;">
       <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
         <span style={`width:3px;height:18px;background:${BRAND.main};border-radius:2px;display:inline-block;`}></span>
         {c.faq_title}
       </h2>
       {c.faqs.map(f => (
-        <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question"
+        <details
           style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
-          <summary itemprop="name"
+          <summary
             style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">{f.q}</summary>
-          <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"
+          <div
             style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
-            <p itemprop="text">{f.a}</p>
+            <p>{f.a}</p>
           </div>
         </details>
       ))}

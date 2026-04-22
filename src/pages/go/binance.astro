@@ -226,9 +226,8 @@ const faqSchema = {
       </a>
     </section>
 
-    <!-- ══ FAQ ══ -->
-    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:24px;"
-      itemscope itemtype="https://schema.org/FAQPage">
+    <!-- ══ FAQ ══ schema is JSON-LD only, no microdata to avoid duplicates -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:24px;">
       <h2 style="font-size:17px;font-weight:700;color:var(--fg);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
         <span style="width:3px;height:20px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
         常见问题
@@ -241,14 +240,14 @@ const faqSchema = {
           ["注册需要翻墙吗？", "APK下载不需要翻墙。注册和使用币安时，网络访问可能需要工具，建议使用大陆版APK，针对国内网络有优化。"],
           ["手续费折扣怎么使用？", "注册时确保邀请码字段填写了B2345即可，折扣自动生效。账户内持有BNB时选择用BNB抵扣手续费可进一步降低费率。"],
         ].map(([q, a]) => (
-          <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question"
+          <details
             style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;">
-            <summary itemprop="name" style="font-size:14px;font-weight:600;color:var(--fg);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <summary style="font-size:14px;font-weight:600;color:var(--fg);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;">
               <span>{q}</span>
               <span style="color:var(--fg-muted);font-size:20px;flex-shrink:0;transition:transform 0.2s;" class="faq-icon">+</span>
             </summary>
-            <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-              <p itemprop="text" style="font-size:13px;color:var(--fg-muted);line-height:1.7;margin:12px 0 0;">{a}</p>
+            <div>
+              <p style="font-size:13px;color:var(--fg-muted);line-height:1.7;margin:12px 0 0;">{a}</p>
             </div>
           </details>
         ))}

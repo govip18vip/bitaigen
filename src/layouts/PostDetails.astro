@@ -403,15 +403,15 @@ const howToSchema = (articleType === "howto" || articleType === "guide") ? (() =
             <BinanceBanner variant="mid" lang={postLang} />
           </div>
 
-          <!-- FAQ section -->
+          <!-- FAQ section — schema is JSON-LD only, no microdata to avoid duplicates -->
           {faqs && faqs.length > 0 && (
-            <section class="pd-faq" itemscope itemtype="https://schema.org/FAQPage">
+            <section class="pd-faq">
               <h2 class="pd-faq-title">{t("nav.about") === "About" ? "FAQ" : "常见问题"}</h2>
               {faqs.map(faq => (
-                <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-                  <summary itemprop="name">{faq.q}</summary>
-                  <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-                    <p itemprop="text">{faq.a}</p>
+                <details>
+                  <summary>{faq.q}</summary>
+                  <div>
+                    <p>{faq.a}</p>
                   </div>
                 </details>
               ))}

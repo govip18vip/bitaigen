@@ -331,15 +331,15 @@ const pageTitle = `${post.title} | ${SITE.title}`;
             <BinanceBanner variant="mid" lang={postLang} />
           </div>
 
-          <!-- FAQ -->
+          <!-- FAQ — schema is JSON-LD only, no microdata to avoid duplicates -->
           {post.faqs && post.faqs.length > 0 && (
-            <section class="nd-faq" itemscope itemtype="https://schema.org/FAQPage">
+            <section class="nd-faq">
               <h2 class="nd-section-title">{s.faq}</h2>
               {post.faqs.map(faq => (
-                <details itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-                  <summary itemprop="name">{faq.q}</summary>
-                  <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-                    <p itemprop="text">{faq.a}</p>
+                <details>
+                  <summary>{faq.q}</summary>
+                  <div>
+                    <p>{faq.a}</p>
                   </div>
                 </details>
               ))}

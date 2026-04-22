@@ -348,18 +348,18 @@ const productSchema = {
         <BinanceBanner variant="article" lang={lang} />
       </div>
 
-      <!-- FAQ Section — FAQPage schema already in head -->
-      <section style="padding:0 16px 16px;" itemscope itemtype="https://schema.org/FAQPage">
+      <!-- FAQ Section — FAQPage schema is in JSON-LD head only (no microdata to avoid duplicates) -->
+      <section style="padding:0 16px 16px;">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;">
           <h2 style="font-size:18px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
             <span style="width:3px;height:18px;background:var(--accent);border-radius:2px;flex-shrink:0;"></span>
             常见问题
           </h2>
           {faqs.map(faq => (
-            <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-              <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);" itemprop="name">{faq.q}</summary>
-              <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-                <p itemprop="text">{faq.a}</p>
+            <details style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+              <summary style="padding:14px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--fg);">{faq.q}</summary>
+              <div style="padding:0 16px 14px;font-size:13px;color:var(--fg-muted);line-height:1.7;">
+                <p>{faq.a}</p>
               </div>
             </details>
           ))}
