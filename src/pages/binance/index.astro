@@ -14,6 +14,9 @@ import {
   BINANCE_REF,
   DIFFICULTY_LABEL,
 } from "@/data/binance-sections";
+import { binancePillarHreflang } from "@/data/binance-i18n";
+
+const hreflangLinks = binancePillarHreflang(SITE.website);
 
 const REF   = BINANCE_REF;
 const APK   = BINANCE_DL_APK;
@@ -75,6 +78,9 @@ const faqSchema = {
   canonicalURL={`${SITE.website}binance`}
 >
   <Fragment slot="head">
+    {hreflangLinks.map(l => (
+      <link rel="alternate" hreflang={l.lang} href={l.href} />
+    ))}
     <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
   </Fragment>

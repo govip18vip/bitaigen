@@ -1,51 +1,101 @@
 ---
-// src/pages/binance/[section].astro
-// 币安专题子页面 — /binance/{section}
-// 动态生成 12 个子页面：register / download / kyc / deposit / withdraw / spot / futures / p2p / fees / security / earn / bnb
+// src/pages/[lang]/binance/[section].astro
+// 多语言币安专题子页 — /en/binance/{section}, /zh-tw/binance/{section}, /es/binance/{section}, /pt/binance/{section}
 
 import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import { SITE } from "@/config";
+import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
 import {
-  BINANCE_SECTIONS,
+  getBinanceSections,
+  getRelatedSections,
   BINANCE_REG_URL,
   BINANCE_DL_APK,
   BINANCE_REF,
   DIFFICULTY_LABEL,
   DIFFICULTY_COLOR,
-  getRelatedSections,
-} from "@/data/binance-sections";
-import { binanceSectionHreflang } from "@/data/binance-i18n";
+  binanceSectionHreflang,
+} from "@/data/binance-i18n";
 
 export function getStaticPaths() {
-  return BINANCE_SECTIONS.map(section => ({
-    params: { section: section.id },
-    props: { section },
-  }));
+  const paths: any[] = [];
+  for (const [pathSeg, lang] of Object.entries(LANG_PATH_MAP)) {
+    const sections = getBinanceSections(lang as Lang);
+    for (const section of sections) {
+      paths.push({
+        params: { lang: pathSeg, section: section.id },
+        props: { lang, section },
+      });
+    }
+  }
+  return paths;
 }
 
-const { section } = Astro.props;
+const { lang, section } = Astro.props as { lang: Lang; section: any };
+const allSections = getBinanceSections(lang);
+const related = getRelatedSections(lang, section.relatedSections);
+const diffLabel = DIFFICULTY_LABEL[lang];
 
-const REF   = BINANCE_REF;
-const APK   = BINANCE_DL_APK;
-const WEB   = BINANCE_REG_URL;
-const LOGO  = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
+const REF  = BINANCE_REF;
+const APK  = BINANCE_DL_APK;
+const WEB  = BINANCE_REG_URL;
+const LOGO = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
 
-const related = getRelatedSections(section.relatedSections);
+const langPathSeg = lang === "zh-TW" ? "zh-tw" : lang;
+const canonicalURL = `${SITE.website}${langPathSeg}/binance/${section.id}`;
+const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
 
-// ── 所有章节用于面包屑侧边导航 ──────────────────────────────
-const allSections = BINANCE_SECTIONS;
+// ── Per-language UI labels ──
+const LABELS: Record<Lang, {
+  home: string; binance: string; allTopics: string; topicOverview: string;
+  detailedSteps: string; faqTitle: string; relatedTopics: string;
+  ctaApk: string; ctaWeb: string; ctaMid: string; ctaBottomTitle: string; ctaBottomSub: string;
+}> = {
+  "zh-CN": {} as any,
+  "zh-TW": {
+    home: "首頁", binance: "幣安教學", allTopics: "全部主題", topicOverview: "主題總覽",
+    detailedSteps: "詳細步驟", faqTitle: "常見問題", relatedTopics: "相關教學",
+    ctaApk: "📱 下載App", ctaWeb: `🌐 網頁註冊（邀請碼 ${REF}）`,
+    ctaMid: `使用邀請碼 ${REF} 註冊，享最高手續費折扣`,
+    ctaBottomTitle: "立即註冊，終身享折扣",
+    ctaBottomSub: "永久有效",
+  },
+  "en": {
+    home: "Home", binance: "Binance Guide", allTopics: "All Topics", topicOverview: "Topic Overview",
+    detailedSteps: "Detailed Steps", faqTitle: "Frequently Asked Questions", relatedTopics: "Related Tutorials",
+    ctaApk: "📱 Download App", ctaWeb: `🌐 Sign Up (code ${REF})`,
+    ctaMid: `Use referral code ${REF} for max trading fee discount`,
+    ctaBottomTitle: "Sign Up Now, Get Lifetime Discount",
+    ctaBottomSub: "Valid forever",
+  },
+  "es": {
+    home: "Inicio", binance: "Guía Binance", allTopics: "Todos los Temas", topicOverview: "Vista General",
+    detailedSteps: "Pasos Detallados", faqTitle: "Preguntas Frecuentes", relatedTopics: "Tutoriales Relacionados",
+    ctaApk: "📱 Descargar App", ctaWeb: `🌐 Registro (código ${REF})`,
+    ctaMid: `Usa código ${REF} para descuento máximo en comisiones`,
+    ctaBottomTitle: "Regístrate Ahora, Descuento de Por Vida",
+    ctaBottomSub: "Válido para siempre",
+  },
+  "pt": {
+    home: "Início", binance: "Guia Binance", allTopics: "Todos os Tópicos", topicOverview: "Visão Geral",
+    detailedSteps: "Passos Detalhados", faqTitle: "Perguntas Frequentes", relatedTopics: "Tutoriais Relacionados",
+    ctaApk: "📱 Baixar App", ctaWeb: `🌐 Cadastro (código ${REF})`,
+    ctaMid: `Use código ${REF} para desconto máximo em taxas`,
+    ctaBottomTitle: "Cadastre-se Agora, Desconto Vitalício",
+    ctaBottomSub: "Válido para sempre",
+  },
+};
+const ui = LABELS[lang];
 
-// ── Schema ───────────────────────────────────────────────────
-const canonicalURL = `${SITE.website}binance/${section.id}`;
-
+// ── Schema ────────────────────────────────────────────────
 const pageSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: section.title,
   description: section.metaDesc,
   url: canonicalURL,
+  inLanguage: lang,
   author: { "@type": "Organization", name: "Bitaigen" },
   publisher: {
     "@type": "Organization",
@@ -55,47 +105,40 @@ const pageSchema = {
   breadcrumb: {
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "首页", item: SITE.website },
-      { "@type": "ListItem", position: 2, name: "币安教程", item: `${SITE.website}binance` },
+      { "@type": "ListItem", position: 1, name: ui.home, item: SITE.website },
+      { "@type": "ListItem", position: 2, name: ui.binance, item: `${SITE.website}${langPathSeg}/binance` },
       { "@type": "ListItem", position: 3, name: section.shortTitle, item: canonicalURL },
     ],
   },
 };
 
-const faqSchema = section.faqs.length > 0
-  ? {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: section.faqs.map(faq => ({
-        "@type": "Question",
-        name: faq.q,
-        acceptedAnswer: { "@type": "Answer", text: faq.a },
-      })),
-    }
-  : null;
+const faqSchema = section.faqs.length > 0 ? {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  inLanguage: lang,
+  mainEntity: section.faqs.map((faq: any) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+} : null;
 
-const howToSchema = section.steps.length > 0
-  ? {
-      "@context": "https://schema.org",
-      "@type": "HowTo",
-      name: section.title,
-      description: section.intro,
-      estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: "0" },
-      totalTime: `PT${section.estimatedTime.replace("分钟", "M").replace("小时", "H")}`,
-      step: section.steps.map(s => ({
-        "@type": "HowToStep",
-        position: s.step,
-        name: s.title,
-        text: s.content,
-      })),
-    }
-  : null;
+const howToSchema = section.steps.length > 0 ? {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: section.title,
+  description: section.intro,
+  inLanguage: lang,
+  estimatedCost: { "@type": "MonetaryAmount", currency: "USD", value: "0" },
+  step: section.steps.map((s: any) => ({
+    "@type": "HowToStep",
+    position: s.step,
+    name: s.title,
+    text: s.content,
+  })),
+} : null;
 
-const tipIconMap: Record<string, string> = {
-  warning: "⚠️",
-  success: "✅",
-  info: "💡",
-};
+const tipIconMap: Record<string, string> = { warning: "⚠️", success: "✅", info: "💡" };
 const tipColorMap: Record<string, string> = {
   warning: "rgba(246,70,93,0.08)",
   success: "rgba(14,203,129,0.08)",
@@ -111,8 +154,6 @@ const tipTextMap: Record<string, string> = {
   success: "#0ECB81",
   info:    "#F0B90B",
 };
-
-const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
 ---
 
 <Layout
@@ -139,54 +180,47 @@ const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
     }
   </style>
 
-  <!-- 整体布局：两栏（内容 + 侧栏） -->
   <div style="max-width:1100px;margin:0 auto;padding:0 16px 80px;display:grid;grid-template-columns:1fr 240px;gap:32px;align-items:start;" class="binance-layout">
 
-    <!-- ══ 主内容 ══ -->
     <main id="main-content">
 
       <!-- 面包屑 -->
       <nav aria-label="breadcrumb" style="font-size:13px;color:var(--fg-muted);padding:20px 0 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <a href="/" style="color:var(--fg-muted);text-decoration:none;" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">首页</a>
+        <a href="/" style="color:var(--fg-muted);text-decoration:none;">{ui.home}</a>
         <span>/</span>
-        <a href="/binance" style="color:var(--fg-muted);text-decoration:none;" onmouseover="this.style.color='var(--fg)'" onmouseout="this.style.color='var(--fg-muted)'">币安教程</a>
+        <a href={`/${langPathSeg}/binance`} style="color:var(--fg-muted);text-decoration:none;">{ui.binance}</a>
         <span>/</span>
         <span style="color:var(--fg);">{section.shortTitle}</span>
       </nav>
 
-      <!-- ── 文章头 ── -->
+      <!-- 文章头 -->
       <header style="padding:24px 0 32px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
           <span style="font-size:28px;line-height:1;">{section.icon}</span>
           <span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;background:rgba(240,185,11,0.12);color:#F0B90B;">⏱ {section.estimatedTime}</span>
           <span style={`font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;background:${DIFFICULTY_COLOR[section.difficulty]}18;color:${DIFFICULTY_COLOR[section.difficulty]};`}>
-            {DIFFICULTY_LABEL[section.difficulty]}
+            {diffLabel[section.difficulty]}
           </span>
         </div>
         <h1 style="font-size:clamp(20px,3.5vw,30px);font-weight:900;color:var(--fg);line-height:1.25;margin:0 0 14px;letter-spacing:-0.02em;">{section.title}</h1>
         <p style="font-size:15px;color:var(--fg-muted);line-height:1.8;margin:0 0 20px;">{section.intro}</p>
 
-        <!-- inline CTA -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;">
           <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;transition:all 0.12s;"
-            onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
-          >
-            📱 下载大陆版APK
+            style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+            {ui.ctaApk}
           </a>
           <a href={WEB} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--bg-card);color:var(--fg);border:1.5px solid #F0B90B;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;transition:all 0.12s;"
-            onmouseover="this.style.background='rgba(240,185,11,0.1)'" onmouseout="this.style.background='var(--bg-card)'"
-          >
-            🌐 网页注册（邀请码 {REF}）
+            style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:var(--bg-card);color:var(--fg);border:1.5px solid #F0B90B;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+            {ui.ctaWeb}
           </a>
         </div>
       </header>
 
-      <!-- ── 提示框 ── -->
+      <!-- 提示框 -->
       {section.tips.length > 0 && (
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px;">
-          {section.tips.map(tip => (
+          {section.tips.map((tip: any) => (
             <div style={`background:${tipColorMap[tip.type]};border:1px solid ${tipBorderMap[tip.type]};border-radius:10px;padding:14px 16px;display:flex;gap:10px;`}>
               <span style="font-size:18px;flex-shrink:0;line-height:1.3;">{tipIconMap[tip.type]}</span>
               <div>
@@ -198,15 +232,15 @@ const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
         </div>
       )}
 
-      <!-- ── 步骤详解 ── -->
+      <!-- 步骤 -->
       {section.steps.length > 0 && (
         <section style="margin-bottom:36px;">
           <h2 style="font-size:18px;font-weight:800;color:var(--fg);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
             <span style="width:4px;height:20px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
-            详细步骤
+            {ui.detailedSteps}
           </h2>
           <div style="display:flex;flex-direction:column;gap:0;">
-            {section.steps.map((step, i) => (
+            {section.steps.map((step: any, i: number) => (
               <div style={`display:flex;gap:16px;align-items:flex-start;padding:20px 0;${i < section.steps.length - 1 ? "border-bottom:1px solid var(--border-subtle);" : ""}`}>
                 <div style="width:38px;height:38px;border-radius:50%;background:#F0B90B;color:#1a1200;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{step.step}</div>
                 <div style="flex:1;">
@@ -224,32 +258,26 @@ const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
         </section>
       )}
 
-      <!-- ── 中间 CTA ── -->
+      <!-- 中间 CTA -->
       <div style="background:rgba(240,185,11,0.06);border:1.5px dashed rgba(240,185,11,0.4);border-radius:12px;padding:24px;margin-bottom:36px;text-align:center;">
-        <p style="font-size:14px;color:var(--fg);font-weight:600;margin:0 0 14px;">
-          使用邀请码 <span style="color:#F0B90B;font-family:monospace;font-size:18px;font-weight:900;">{REF}</span> 注册，享受最高手续费折扣
-        </p>
+        <p style="font-size:14px;color:var(--fg);font-weight:600;margin:0 0 14px;">{ui.ctaMid}</p>
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
           <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="display:inline-flex;align-items:center;gap:7px;padding:11px 24px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:800;font-size:14px;transition:all 0.12s;"
-            onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
-          >大陆版APK下载</a>
+            style="display:inline-flex;align-items:center;gap:7px;padding:11px 24px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:800;font-size:14px;">{ui.ctaApk}</a>
           <a href={WEB} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="display:inline-flex;align-items:center;gap:7px;padding:11px 24px;background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;transition:all 0.12s;"
-            onmouseover="this.style.borderColor='#F0B90B'" onmouseout="this.style.borderColor='var(--border)'"
-          >网页版注册</a>
+            style="display:inline-flex;align-items:center;gap:7px;padding:11px 24px;background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">{ui.ctaWeb}</a>
         </div>
       </div>
 
-      <!-- ── FAQ ── -->
+      <!-- FAQ -->
       {section.faqs.length > 0 && (
         <section style="margin-bottom:36px;">
           <h2 style="font-size:18px;font-weight:800;color:var(--fg);margin:0 0 18px;display:flex;align-items:center;gap:8px;">
             <span style="width:4px;height:20px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
-            常见问题
+            {ui.faqTitle}
           </h2>
           <div style="display:flex;flex-direction:column;gap:10px;">
-            {section.faqs.map(faq => (
+            {section.faqs.map((faq: any) => (
               <details style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;">
                 <summary style="font-size:14px;font-weight:600;color:var(--fg);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;">
                   <span>{faq.q}</span>
@@ -262,24 +290,21 @@ const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
         </section>
       )}
 
-      <!-- ── 相关专题 ── -->
+      <!-- 相关 -->
       {related.length > 0 && (
         <section style="margin-bottom:36px;">
           <h2 style="font-size:16px;font-weight:700;color:var(--fg);margin:0 0 14px;display:flex;align-items:center;gap:8px;">
             <span style="width:3px;height:18px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
-            相关教程
+            {ui.relatedTopics}
           </h2>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
             {related.map(rel => (
-              <a
-                href={`/binance/${rel.id}`}
-                style="display:flex;gap:10px;align-items:center;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;text-decoration:none;transition:all 0.12s;"
-                onmouseover="this.style.borderColor='#F0B90B'" onmouseout="this.style.borderColor='var(--border)'"
-              >
+              <a href={`/${langPathSeg}/binance/${rel.id}`}
+                style="display:flex;gap:10px;align-items:center;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;text-decoration:none;">
                 <span style="font-size:20px;">{rel.icon}</span>
                 <div>
                   <div style="font-size:13px;font-weight:700;color:var(--fg);">{rel.shortTitle}</div>
-                  <div style="font-size:11px;color:var(--fg-muted);margin-top:2px;">{DIFFICULTY_LABEL[rel.difficulty]} · {rel.estimatedTime}</div>
+                  <div style="font-size:11px;color:var(--fg-muted);margin-top:2px;">{diffLabel[rel.difficulty]} · {rel.estimatedTime}</div>
                 </div>
               </a>
             ))}
@@ -287,57 +312,50 @@ const hreflangLinks = binanceSectionHreflang(SITE.website, section.id);
         </section>
       )}
 
-      <!-- ── 底部 CTA ── -->
+      <!-- 底部 CTA -->
       <section style="background:linear-gradient(135deg,#1a1200,#2a1e00);border:1px solid rgba(240,185,11,0.3);border-radius:14px;padding:32px;text-align:center;">
         <img src={LOGO} alt="Binance" width="48" height="48" style="border-radius:10px;margin-bottom:14px;" />
-        <h2 style="font-size:20px;font-weight:900;color:#F0B90B;margin:0 0 8px;">立即注册，终身享折扣</h2>
+        <h2 style="font-size:20px;font-weight:900;color:#F0B90B;margin:0 0 8px;">{ui.ctaBottomTitle}</h2>
         <p style="font-size:13px;color:rgba(255,255,255,0.65);margin:0 0 20px;line-height:1.7;">
-          邀请码 <strong style="color:#F0B90B;font-family:monospace;font-size:17px;">{REF}</strong> — 永久有效
+          <strong style="color:#F0B90B;font-family:monospace;font-size:17px;">{REF}</strong> — {ui.ctaBottomSub}
         </p>
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:400px;margin:0 auto;">
           <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-size:14px;font-weight:800;transition:all 0.12s;"
-            onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
-          >📱 大陆版APK</a>
+            style="flex:1;min-width:140px;padding:13px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-size:14px;font-weight:800;text-align:center;">
+            {ui.ctaApk}
+          </a>
           <a href={WEB} target="_blank" rel="noopener noreferrer nofollow sponsored"
-            style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:transparent;color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.25);border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;transition:all 0.12s;"
-          >🌐 网页注册</a>
+            style="flex:1;min-width:140px;padding:13px;background:transparent;color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.25);border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;text-align:center;">
+            {ui.ctaWeb}
+          </a>
         </div>
       </section>
 
     </main>
 
-    <!-- ══ 侧边栏：专题导航 ══ -->
+    <!-- 侧边栏 -->
     <aside class="binance-sidebar" style="position:sticky;top:80px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;max-height:85vh;overflow-y:auto;">
-      <div style="font-size:12px;font-weight:700;color:var(--fg-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">全部专题</div>
+      <div style="font-size:12px;font-weight:700;color:var(--fg-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">{ui.allTopics}</div>
       <nav style="display:flex;flex-direction:column;gap:4px;">
-        <a href="/binance"
-          style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;text-decoration:none;font-size:12.5px;color:var(--fg-muted);transition:all 0.12s;"
-          onmouseover="this.style.background='var(--bg-elevated)';this.style.color='var(--fg)'"
-          onmouseout="this.style.background='transparent';this.style.color='var(--fg-muted)'"
-        >
-          🏠 <span>专题总览</span>
+        <a href={`/${langPathSeg}/binance`}
+          style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;text-decoration:none;font-size:12.5px;color:var(--fg-muted);">
+          🏠 <span>{ui.topicOverview}</span>
         </a>
         {allSections.map(s => (
-          <a
-            href={`/binance/${s.id}`}
-            style={`display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;text-decoration:none;font-size:12.5px;transition:all 0.12s;${s.id === section.id ? "background:rgba(240,185,11,0.12);color:#F0B90B;font-weight:700;" : "color:var(--fg-muted);"}`}
-            onmouseover={s.id !== section.id ? "this.style.background='var(--bg-elevated)';this.style.color='var(--fg)'" : ""}
-            onmouseout={s.id !== section.id ? "this.style.background='transparent';this.style.color='var(--fg-muted)'" : ""}
-          >
+          <a href={`/${langPathSeg}/binance/${s.id}`}
+            style={`display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;text-decoration:none;font-size:12.5px;${s.id === section.id ? "background:rgba(240,185,11,0.12);color:#F0B90B;font-weight:700;" : "color:var(--fg-muted);"}`}>
             <span>{s.icon}</span>
             <span>{s.shortTitle}</span>
           </a>
         ))}
       </nav>
 
-      <!-- 侧栏 CTA -->
       <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
         <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
-          style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;margin-bottom:8px;transition:all 0.12s;"
-          onmouseover="this.style.background='#ffd700'" onmouseout="this.style.background='#F0B90B'"
-        >📱 大陆版APK下载</a>
-        <div style="text-align:center;font-size:11px;color:var(--fg-muted);">邀请码 <span style="color:#F0B90B;font-family:monospace;font-weight:700;">{REF}</span></div>
+          style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#F0B90B;color:#1a1200;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;margin-bottom:8px;">
+          {ui.ctaApk}
+        </a>
+        <div style="text-align:center;font-size:11px;color:var(--fg-muted);"><span style="color:#F0B90B;font-family:monospace;font-weight:700;">{REF}</span></div>
       </div>
     </aside>
 

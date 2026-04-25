@@ -1,0 +1,410 @@
+---
+// src/pages/[lang]/binance/index.astro
+// 多语言币安专题 Pillar 页 — /en/binance, /zh-tw/binance, /es/binance, /pt/binance
+
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import { SITE } from "@/config";
+import { LANG_PATH_MAP, type Lang } from "@/i18n/ui";
+import {
+  getBinanceSections,
+  BINANCE_REF,
+  BINANCE_REG_URL,
+  BINANCE_DL_APK,
+  DIFFICULTY_LABEL,
+  binancePillarHreflang,
+} from "@/data/binance-i18n";
+
+export function getStaticPaths() {
+  return Object.entries(LANG_PATH_MAP).map(([pathSeg, lang]) => ({
+    params: { lang: pathSeg },
+    props: { lang },
+  }));
+}
+
+const { lang } = Astro.props as { lang: Lang };
+const sections = getBinanceSections(lang);
+const diffLabel = DIFFICULTY_LABEL[lang];
+
+const REF  = BINANCE_REF;
+const APK  = BINANCE_DL_APK;
+const WEB  = BINANCE_REG_URL;
+const LOGO = "https://basebiance.com/content/images/2025/04/1HH5201407.png";
+
+const langPathSeg = lang === "zh-TW" ? "zh-tw" : lang;
+const canonicalURL = `${SITE.website}${langPathSeg}/binance`;
+const hreflangLinks = binancePillarHreflang(SITE.website);
+
+// ── Per-language UI strings ────────────────────────────────
+const UI: Record<Lang, {
+  metaTitle: string; metaDesc: string; keywords: string;
+  h1: string; subtitle: string;
+  ctaApk: string; ctaWeb: string; ctaDisclaimer: string;
+  refCodeLabel: string; refCopyLabel: string; refCopiedLabel: string; refDiscount: string;
+  topicsTitle: string; viewTutorial: string;
+  whyTitle: string; whyItems: { icon: string; title: string; desc: string }[];
+  quickStartTitle: string; quickSteps: { step: string; label: string; href: string; desc: string }[];
+  faqTitle: string; faqs: [string, string][];
+  bottomCtaTitle: string; bottomCtaSubtitle: string;
+}> = {
+  "zh-CN": {} as any,
+  "zh-TW": {
+    metaTitle: "幣安完全使用指南2026 — 12大主題教學 | Bitaigen",
+    metaDesc: "幣安Binance完整教學：註冊、App下載、KYC認證、台幣入金/出金、現貨合約、P2P、手續費、安全設定等12個主題，使用邀請碼B2345享手續費折扣。",
+    keywords: "幣安教學,binance使用指南,幣安註冊,binance下載台灣,幣安KYC,幣安手續費,幣安台灣",
+    h1: "幣安完全使用指南 2026",
+    subtitle: "從註冊到進階交易，12 大主題全方位涵蓋。使用邀請碼",
+    ctaApk: "📱 下載App", ctaWeb: "🌐 網頁版註冊",
+    ctaDisclaimer: "⚠️ 投資有風險，加密貨幣價格波動較大，請謹慎決策。本站與幣安存在聯盟合作關係。",
+    refCodeLabel: "專屬邀請碼", refCopyLabel: "複製", refCopiedLabel: "已複製✓",
+    refDiscount: "現貨折扣 · 註冊即享",
+    topicsTitle: "12 大主題教學", viewTutorial: "查看教學",
+    whyTitle: "為什麼選擇幣安？",
+    whyItems: [
+      { icon: "🏆", title: "全球第一交易所", desc: "日均交易量超700億美元，流動性全球最強" },
+      { icon: "💰", title: "最低手續費", desc: "邀請碼B2345可享最高折扣，最低0.075%" },
+      { icon: "🔒", title: "SAFU安全基金", desc: "10億美元專項儲備保障用戶資產安全" },
+      { icon: "📊", title: "350+交易品種", desc: "主流幣、DeFi、新幣一站全覆蓋" },
+      { icon: "📱", title: "繁中支援", desc: "App和網頁均支援繁體中文" },
+      { icon: "⚡", title: "多樣化產品", desc: "現貨、合約、P2P、Earn、NFT全都有" },
+    ],
+    quickStartTitle: "新手快速入門路徑",
+    quickSteps: [
+      { step:"1", label:"註冊帳戶", href:"/zh-tw/binance/register", desc:"3分鐘完成，支援手機/Email註冊，邀請碼B2345自動填入" },
+      { step:"2", label:"下載App",  href:"/zh-tw/binance/download", desc:"Android/iOS皆可從官方商店下載" },
+      { step:"3", label:"完成KYC",  href:"/zh-tw/binance/kyc",      desc:"上傳身分證或護照，解鎖提款與全功能" },
+      { step:"4", label:"入金充值",  href:"/zh-tw/binance/deposit",  desc:"P2P台幣轉帳、信用卡、加密貨幣多種方式" },
+      { step:"5", label:"開始交易",  href:"/zh-tw/binance/spot",     desc:"從現貨交易開始，介面簡潔，新手友善" },
+    ],
+    faqTitle: "常見問題",
+    faqs: [
+      ["邀請碼B2345有什麼優惠？","使用邀請碼B2345註冊幣安，可享平台最高可用的手續費折扣，現貨交易手續費最低可至0.075%。"],
+      ["台灣可以用幣安嗎？","可以。幣安在台灣可正常使用，但需自行負擔合規與稅務責任。建議使用P2P台幣入出金。"],
+      ["幣安KYC認證需要多久？","通常5-30分鐘完成，尖峰時段可能延長至24小時。"],
+      ["幣安安全嗎？","幣安設有10億美元SAFU安全基金。建議開啟2FA雙重認證、設定白名單地址等安全功能。"],
+      ["幣安手續費怎麼算？","現貨標準0.1%，使用B2345享折扣，BNB支付再打25折，最低可至0.075%。"],
+    ],
+    bottomCtaTitle: "立即註冊，終身享受折扣",
+    bottomCtaSubtitle: "註冊即鎖定最高折扣，永久有效",
+  },
+  "en": {
+    metaTitle: "Binance Complete Guide 2026 — 12 Topics | Bitaigen",
+    metaDesc: "Complete Binance tutorials: signup, app download, KYC verification, deposit/withdraw, spot/futures, P2P, fees, security. Use referral code B2345 for max discount.",
+    keywords: "binance guide, binance tutorial, binance signup, binance kyc, binance fees, binance referral",
+    h1: "Binance Complete Guide 2026",
+    subtitle: "From signup to advanced trading — 12 topics covered. Sign up with code",
+    ctaApk: "📱 Download App", ctaWeb: "🌐 Sign Up Online",
+    ctaDisclaimer: "⚠️ Crypto investing carries risk. Prices are volatile — please research carefully. We have an affiliate partnership with Binance.",
+    refCodeLabel: "Referral Code", refCopyLabel: "Copy", refCopiedLabel: "Copied ✓",
+    refDiscount: "Spot fee discount · activated on signup",
+    topicsTitle: "12 Topic Tutorials", viewTutorial: "Read Tutorial",
+    whyTitle: "Why Choose Binance?",
+    whyItems: [
+      { icon: "🏆", title: "World's #1 Exchange", desc: "$70B+ daily volume, deepest liquidity globally" },
+      { icon: "💰", title: "Lowest Fees", desc: "Code B2345 unlocks max discount, as low as 0.075%" },
+      { icon: "🔒", title: "SAFU Insurance Fund", desc: "$1B+ reserve protecting user assets" },
+      { icon: "📊", title: "350+ Cryptocurrencies", desc: "Majors, DeFi, new listings all in one place" },
+      { icon: "📱", title: "Multilingual", desc: "App and web support 40+ languages" },
+      { icon: "⚡", title: "All Products", desc: "Spot, futures, P2P, Earn, Launchpad, NFT" },
+    ],
+    quickStartTitle: "Beginner Quick Start Path",
+    quickSteps: [
+      { step:"1", label:"Create Account", href:"/en/binance/register", desc:"3-minute signup with email or phone, code B2345 auto-applied" },
+      { step:"2", label:"Download App",   href:"/en/binance/download", desc:"Available on Google Play, App Store, Windows, Mac" },
+      { step:"3", label:"Complete KYC",   href:"/en/binance/kyc",      desc:"Upload ID and selfie to unlock all features" },
+      { step:"4", label:"Deposit Funds",  href:"/en/binance/deposit",  desc:"Bank transfer, card, P2P, or crypto deposit" },
+      { step:"5", label:"Start Trading",  href:"/en/binance/spot",     desc:"Begin with spot trading — beginner friendly" },
+    ],
+    faqTitle: "Frequently Asked Questions",
+    faqs: [
+      ["What does referral code B2345 do?","Using code B2345 unlocks the maximum trading fee discount available — saving you significant fees over time. As low as 0.075% on spot trades."],
+      ["Is Binance available in my country?","Binance operates globally but with country-specific restrictions. US users must use Binance.US. Check the Binance country list before signing up."],
+      ["How long does KYC take?","Usually 5-30 minutes. During peak times it may extend to 24-72 hours. You'll get an email when approved."],
+      ["Is Binance safe?","Binance has a $1B+ SAFU insurance fund. Always enable 2FA, anti-phishing code, and withdrawal whitelist for maximum security."],
+      ["How are Binance fees calculated?","Spot is 0.1% standard, 0.075% with B2345 + BNB discount. Futures: 0.02% maker / 0.04% taker. VIP tiers reduce further."],
+    ],
+    bottomCtaTitle: "Sign Up Now, Get Lifetime Discount",
+    bottomCtaSubtitle: "Sign up to lock in maximum discount — valid forever",
+  },
+  "es": {
+    metaTitle: "Guía Completa Binance 2026 — 12 Temas | Bitaigen",
+    metaDesc: "Tutoriales completos de Binance: registro, app, KYC, depósito SPEI/PSE, spot/futuros, P2P, comisiones, seguridad. Usa código B2345 para descuento máximo.",
+    keywords: "binance guia, binance tutorial, registro binance, binance mexico, binance argentina, codigo binance",
+    h1: "Guía Completa Binance 2026",
+    subtitle: "Del registro al trading avanzado — 12 temas cubiertos. Regístrate con código",
+    ctaApk: "📱 Descargar App", ctaWeb: "🌐 Registro Web",
+    ctaDisclaimer: "⚠️ Las inversiones en cripto conllevan riesgo. Los precios son volátiles. Tenemos asociación de afiliado con Binance.",
+    refCodeLabel: "Código de Referido", refCopyLabel: "Copiar", refCopiedLabel: "Copiado ✓",
+    refDiscount: "Descuento spot · activado al registrarse",
+    topicsTitle: "12 Tutoriales por Tema", viewTutorial: "Ver Tutorial",
+    whyTitle: "¿Por Qué Elegir Binance?",
+    whyItems: [
+      { icon: "🏆", title: "Exchange #1 Mundial", desc: "Más de $70B volumen diario, máxima liquidez" },
+      { icon: "💰", title: "Comisiones Más Bajas", desc: "Código B2345 desbloquea máximo descuento, hasta 0.075%" },
+      { icon: "🔒", title: "Fondo SAFU", desc: "$1B+ reserva protegiendo activos de usuarios" },
+      { icon: "📊", title: "350+ Criptomonedas", desc: "Principales, DeFi, nuevas listings en un lugar" },
+      { icon: "📱", title: "Soporte en Español", desc: "App y web disponibles en español" },
+      { icon: "⚡", title: "Todos los Productos", desc: "Spot, futuros, P2P, Earn, Launchpad, NFT" },
+    ],
+    quickStartTitle: "Camino Rápido para Principiantes",
+    quickSteps: [
+      { step:"1", label:"Crear Cuenta", href:"/es/binance/register", desc:"Registro en 3 minutos con email o móvil, código B2345 incluido" },
+      { step:"2", label:"Descargar App", href:"/es/binance/download", desc:"Disponible en Google Play, App Store, Windows, Mac" },
+      { step:"3", label:"Completar KYC", href:"/es/binance/kyc",      desc:"Sube ID/INE y selfie para desbloquear todo" },
+      { step:"4", label:"Depositar",     href:"/es/binance/deposit",  desc:"SPEI México, PSE Colombia, Mercado Pago Argentina" },
+      { step:"5", label:"Empezar Trading",href:"/es/binance/spot",    desc:"Comienza con spot trading — amigable para principiantes" },
+    ],
+    faqTitle: "Preguntas Frecuentes",
+    faqs: [
+      ["¿Qué hace el código B2345?","Usar el código B2345 desbloquea el máximo descuento disponible — ahorra mucho en comisiones a largo plazo. Tan bajo como 0.075% en spot."],
+      ["¿Está Binance disponible en mi país?","Binance opera en la mayoría de países LATAM. EE.UU. debe usar Binance.US. Verifica la lista de países antes de registrarte."],
+      ["¿Cuánto tarda el KYC?","Usualmente 5-30 minutos. En horas pico puede extenderse a 24-72 horas. Recibirás email al ser aprobado."],
+      ["¿Es seguro Binance?","Binance tiene un fondo de seguro SAFU de $1B+. Activa siempre 2FA, código anti-phishing y lista blanca de retiros."],
+      ["¿Cómo se calculan las comisiones?","Spot: 0.1% estándar, 0.075% con B2345 + BNB. Futuros: 0.02% maker / 0.04% taker. Niveles VIP reducen más."],
+    ],
+    bottomCtaTitle: "Regístrate Ahora, Descuento de Por Vida",
+    bottomCtaSubtitle: "Regístrate para asegurar máximo descuento — válido para siempre",
+  },
+  "pt": {
+    metaTitle: "Guia Completo Binance 2026 — 12 Tópicos | Bitaigen",
+    metaDesc: "Tutoriais completos da Binance: cadastro, app, KYC, depósito PIX, spot/futuros, P2P, taxas, segurança. Use código B2345 para desconto máximo.",
+    keywords: "binance guia, binance tutorial, cadastro binance, binance brasil, binance pix, codigo indicacao binance",
+    h1: "Guia Completo Binance 2026",
+    subtitle: "Do cadastro ao trading avançado — 12 tópicos cobertos. Cadastre-se com código",
+    ctaApk: "📱 Baixar App", ctaWeb: "🌐 Cadastro Web",
+    ctaDisclaimer: "⚠️ Investir em cripto envolve risco. Preços são voláteis. Temos parceria de afiliado com a Binance.",
+    refCodeLabel: "Código de Indicação", refCopyLabel: "Copiar", refCopiedLabel: "Copiado ✓",
+    refDiscount: "Desconto spot · ativado no cadastro",
+    topicsTitle: "12 Tutoriais por Tópico", viewTutorial: "Ver Tutorial",
+    whyTitle: "Por Que Escolher Binance?",
+    whyItems: [
+      { icon: "🏆", title: "Maior Exchange do Mundo", desc: "Volume diário de $70B+, maior liquidez global" },
+      { icon: "💰", title: "Menores Taxas", desc: "Código B2345 desbloqueia desconto máximo, até 0.075%" },
+      { icon: "🔒", title: "Fundo SAFU", desc: "Reserva de $1B+ protegendo ativos dos usuários" },
+      { icon: "📊", title: "350+ Criptomoedas", desc: "Principais, DeFi, novos listagens em um só lugar" },
+      { icon: "📱", title: "Suporte em Português", desc: "App e web disponíveis em português brasileiro" },
+      { icon: "⚡", title: "Todos os Produtos", desc: "Spot, futuros, P2P, Earn, Launchpad, NFT" },
+    ],
+    quickStartTitle: "Caminho Rápido para Iniciantes",
+    quickSteps: [
+      { step:"1", label:"Criar Conta",   href:"/pt/binance/register", desc:"Cadastro em 3 minutos com email ou celular, código B2345 incluído" },
+      { step:"2", label:"Baixar App",    href:"/pt/binance/download", desc:"Disponível no Google Play, App Store, Windows, Mac" },
+      { step:"3", label:"Completar KYC", href:"/pt/binance/kyc",      desc:"Envie CPF, RG/CNH e selfie para desbloquear tudo" },
+      { step:"4", label:"Depositar",     href:"/pt/binance/deposit",  desc:"PIX 24h, TED, cartão, P2P ou cripto" },
+      { step:"5", label:"Começar Trading",href:"/pt/binance/spot",    desc:"Comece com spot trading — amigável para iniciantes" },
+    ],
+    faqTitle: "Perguntas Frequentes",
+    faqs: [
+      ["O que o código B2345 faz?","Usar o código B2345 desbloqueia o desconto máximo disponível — economiza muito em taxas a longo prazo. Tão baixo quanto 0.075% no spot."],
+      ["Posso usar a Binance no Brasil?","Sim, a Binance opera plenamente no Brasil com PIX, TED, CPF para KYC. Regulada pelo Banco Central via SIM;Paul Pagamentos."],
+      ["Quanto tempo leva o KYC?","Geralmente 5-30 minutos. Em horários de pico pode levar 24-72 horas. Você receberá email ao ser aprovado."],
+      ["A Binance é segura?","A Binance tem um fundo de seguro SAFU de $1B+. Sempre ative 2FA, código anti-phishing e whitelist de saques."],
+      ["Como as taxas são calculadas?","Spot: 0.1% padrão, 0.075% com B2345 + BNB. Futuros: 0.02% maker / 0.04% taker. Níveis VIP reduzem mais."],
+    ],
+    bottomCtaTitle: "Cadastre-se Agora, Desconto Vitalício",
+    bottomCtaSubtitle: "Cadastre-se para garantir desconto máximo — válido para sempre",
+  },
+};
+
+const ui = UI[lang];
+
+// ── Schema ────────────────────────────────────────────────────
+const pageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: ui.metaTitle,
+  description: ui.metaDesc,
+  url: canonicalURL,
+  inLanguage: lang,
+  breadcrumb: {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE.website },
+      { "@type": "ListItem", position: 2, name: "Binance", item: canonicalURL },
+    ],
+  },
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  inLanguage: lang,
+  mainEntity: ui.faqs.map(([q, a]) => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: { "@type": "Answer", text: a },
+  })),
+};
+---
+
+<Layout
+  title={ui.metaTitle}
+  description={ui.metaDesc}
+  keywords={ui.keywords}
+  canonicalURL={canonicalURL}
+>
+  <Fragment slot="head">
+    {hreflangLinks.map(l => (
+      <link rel="alternate" hreflang={l.lang} href={l.href} />
+    ))}
+    <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <Header />
+
+  <main id="main-content" style="max-width:860px;margin:0 auto;padding:0 16px 80px;">
+
+    <!-- HERO -->
+    <section style="text-align:center;padding:44px 0 36px;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;">
+        <img src={LOGO} alt="Binance Logo" width="44" height="44"
+          style="border-radius:10px;flex-shrink:0;" loading="eager" />
+        <span style="font-size:28px;font-weight:900;color:var(--fg);letter-spacing:-0.02em;">Binance</span>
+      </div>
+      <h1 style="font-size:clamp(22px,4vw,36px);font-weight:900;color:var(--fg);line-height:1.2;margin:0 0 14px;letter-spacing:-0.02em;">
+        {ui.h1}
+      </h1>
+      <p style="font-size:16px;color:var(--fg-muted);line-height:1.7;margin:0 auto 28px;max-width:580px;">
+        {ui.subtitle}&nbsp;
+        <strong style="color:#F0B90B;font-family:monospace;font-size:18px;">{REF}</strong>.
+      </p>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:500px;margin:0 auto 10px;">
+        <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="flex:1;min-width:160px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:#F0B90B;color:#1a1200;border-radius:10px;text-decoration:none;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(240,185,11,0.35);"
+        >
+          {ui.ctaApk}
+        </a>
+        <a href={WEB} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="flex:1;min-width:160px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:var(--bg-card);color:var(--fg);border:2px solid #F0B90B;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;"
+        >
+          {ui.ctaWeb}
+        </a>
+      </div>
+      <p style="font-size:11px;color:var(--fg-light);margin:8px 0 0;">{ui.ctaDisclaimer}</p>
+    </section>
+
+    <!-- 邀请码展示 -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(240,185,11,0.08);border:1.5px dashed rgba(240,185,11,0.45);border-radius:10px;padding:14px 24px;margin-bottom:36px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--fg-muted);">{ui.refCodeLabel}</span>
+      <span style="font-size:28px;font-weight:900;color:#F0B90B;font-family:monospace;letter-spacing:0.12em;">{REF}</span>
+      <button
+        onclick={`navigator.clipboard.writeText('${REF}').then(()=>{this.textContent='${ui.refCopiedLabel}';setTimeout(()=>this.textContent='${ui.refCopyLabel}',1500)})`}
+        style="padding:6px 16px;background:rgba(240,185,11,0.2);border:1px solid rgba(240,185,11,0.4);border-radius:6px;font-size:12px;color:#F0B90B;cursor:pointer;font-weight:700;"
+      >{ui.refCopyLabel}</button>
+      <span style="font-size:12px;color:var(--fg-muted);">{ui.refDiscount}</span>
+    </div>
+
+    <!-- 12 大专题卡片 -->
+    <section style="margin-bottom:48px;">
+      <h2 style="font-size:20px;font-weight:800;color:var(--fg);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+        <span style="width:4px;height:22px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
+        {ui.topicsTitle}
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;">
+        {sections.map(section => (
+          <a href={`/${langPathSeg}/binance/${section.id}`}
+            style="display:flex;flex-direction:column;gap:10px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;text-decoration:none;transition:all 0.15s;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:24px;line-height:1;">{section.icon}</span>
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--fg);line-height:1.3;">{section.shortTitle}</div>
+                <div style="font-size:11px;color:var(--fg-muted);margin-top:2px;">
+                  {diffLabel[section.difficulty]} · ⏱ {section.estimatedTime}
+                </div>
+              </div>
+            </div>
+            <p style="font-size:12.5px;color:var(--fg-muted);line-height:1.6;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+              {section.intro}
+            </p>
+            <span style="font-size:12px;color:#F0B90B;font-weight:600;display:flex;align-items:center;gap:4px;">
+              {ui.viewTutorial}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- 为什么选择币安 -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:32px;margin-bottom:32px;">
+      <h2 style="font-size:18px;font-weight:800;color:var(--fg);margin:0 0 22px;display:flex;align-items:center;gap:8px;">
+        <span style="width:4px;height:22px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
+        {ui.whyTitle}
+      </h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;">
+        {ui.whyItems.map(item => (
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <span style="font-size:22px;flex-shrink:0;line-height:1.2;">{item.icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:3px;">{item.title}</div>
+              <div style="font-size:12px;color:var(--fg-muted);line-height:1.5;">{item.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- 快速入门 -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:32px;margin-bottom:32px;">
+      <h2 style="font-size:18px;font-weight:800;color:var(--fg);margin:0 0 22px;display:flex;align-items:center;gap:8px;">
+        <span style="width:4px;height:22px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
+        {ui.quickStartTitle}
+      </h2>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        {ui.quickSteps.map((item, i) => (
+          <a href={item.href}
+            style={`display:flex;gap:16px;align-items:flex-start;padding:14px 0;text-decoration:none;${i < ui.quickSteps.length - 1 ? "border-bottom:1px solid var(--border-subtle);" : ""}`}>
+            <div style="width:36px;height:36px;border-radius:50%;background:#F0B90B;color:#1a1200;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{item.step}</div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:3px;">{item.label}</div>
+              <div style="font-size:12.5px;color:var(--fg-muted);line-height:1.6;">{item.desc}</div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:32px;margin-bottom:32px;">
+      <h2 style="font-size:18px;font-weight:800;color:var(--fg);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+        <span style="width:4px;height:22px;background:#F0B90B;border-radius:2px;display:inline-block;"></span>
+        {ui.faqTitle}
+      </h2>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        {ui.faqs.map(([q, a]) => (
+          <details style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;">
+            <summary style="font-size:14px;font-weight:600;color:var(--fg);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <span>{q}</span>
+              <span style="color:#F0B90B;font-size:20px;flex-shrink:0;">+</span>
+            </summary>
+            <p style="font-size:13px;color:var(--fg-muted);line-height:1.7;margin:12px 0 0;">{a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <!-- 底部 CTA -->
+    <section style="background:linear-gradient(135deg,#1a1200,#2a1e00);border:1px solid rgba(240,185,11,0.3);border-radius:14px;padding:36px;text-align:center;">
+      <img src={LOGO} alt="Binance" width="52" height="52" style="border-radius:12px;margin-bottom:16px;" />
+      <h2 style="font-size:22px;font-weight:900;color:#F0B90B;margin:0 0 10px;">{ui.bottomCtaTitle}</h2>
+      <p style="font-size:14px;color:rgba(255,255,255,0.65);margin:0 0 26px;line-height:1.7;">
+        {ui.refCodeLabel}: <strong style="color:#F0B90B;font-family:monospace;font-size:18px;">{REF}</strong> — {ui.bottomCtaSubtitle}
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:440px;margin:0 auto;">
+        <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="flex:1;min-width:150px;padding:14px;background:#F0B90B;color:#1a1200;border-radius:10px;text-decoration:none;font-size:15px;font-weight:800;text-align:center;">
+          {ui.ctaApk}
+        </a>
+        <a href={WEB} target="_blank" rel="noopener noreferrer nofollow sponsored"
+          style="flex:1;min-width:150px;padding:14px;background:transparent;color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.25);border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;text-align:center;">
+          {ui.ctaWeb}
+        </a>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Layout>
