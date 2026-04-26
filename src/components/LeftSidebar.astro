@@ -26,11 +26,11 @@ const isActive = (p: string) => {
 // Build nav groups with translated labels
 const catLabelMap: Record<string, string> = {
   prices: "nav.prices",
-  learn: "nav.learn",
+  topics: "nav.topics",
   tools: "nav.tools",
   defi: "cat.defi",
 };
-const catIconMap: Record<string, string> = { prices: "📊", learn: "🎓", tools: "🛠", defi: "💎" };
+const catIconMap: Record<string, string> = { prices: "📊", topics: "📚", tools: "🛠", defi: "💎" };
 
 const navGroups = TAXONOMY.slice(2).map(cat => {
   const translatedSubs = cat.sub.map(s => ({ ...s, label: t(s.labelKey) }));

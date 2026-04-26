@@ -1,0 +1,11 @@
+---
+// /blockchain/[slug] — 区块链技术分类文章详情（zh-CN）
+export const prerender = false;
+import NewsDetails from "@/layouts/NewsDetails.astro";
+import { loadBtgPostDetail } from "@/utils/btgPostDetail";
+const { slug } = Astro.params;
+const r = await loadBtgPostDetail({ slug: slug || "", expectedCategory: "blockchain" });
+if (r.notFound) return Astro.redirect("/404");
+if (r.redirectTo) return Astro.redirect(r.redirectTo, 301);
+---
+<NewsDetails post={r.post!} bodyHtml={r.bodyHtml!} related={r.related} />

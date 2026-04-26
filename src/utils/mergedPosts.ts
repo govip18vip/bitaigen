@@ -8,6 +8,7 @@ import type { CollectionEntry } from "astro:content";
 import { getPosts, type GhostPost } from "./ghost";
 import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
 import { sanityClient, sanityImageUrl, type SanityPost, type SanityFlash } from "./sanity";
+import { buildBtgPostHref } from "./btgPostRoute";
 
 // 统一的文章格式（兼容 Card 组件所需字段）
 export interface UnifiedPost {
@@ -137,9 +138,12 @@ export function sanityToUnified(post: SanityPost): UnifiedPost {
     author: post.author?.name || "Bitaigen 研究团队",
     featured: post.featured || false,
     lang: post.lang || "zh-CN",
-    href: post.lang && post.lang !== "zh-CN"
-      ? `/${LANG_TO_PATH[post.lang as Lang]}/news/${post.slug.current}`
-      : `/news/${post.slug.current}`,
+    href: buildBtgPostHref(
+      post.lang || "zh-CN",
+      (post as any).category,
+      post.slug.current,
+      post.articleType,
+    ),
   };
 }
 
@@ -160,6 +164,7 @@ export async function fetchSanityUnified(options?: {
       *[${filter}] | order(pubDatetime desc) [0...${limit}] {
         _id, title, slug, lang, articleType, description,
         coverImage, pubDatetime, modDatetime, featured, tags,
+        category,
         "author": author->{ name }
       }
     `);

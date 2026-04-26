@@ -13,21 +13,19 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { sanityClient } from "@/utils/sanity";
 import { SITE } from "@/config";
-import { LANG_TO_PATH, type Lang } from "@/i18n/ui";
+import { type Lang } from "@/i18n/ui";
+import { buildBtgPostHref } from "@/utils/btgPostRoute";
 
 type SanityRow = {
   slug: { current: string } | string;
   lang?: string;
+  category?: string;
+  articleType?: string;
   pubDatetime: string;
   modDatetime?: string;
 };
 
 const URLS_PER_PAGE = 40_000;
-
-function postUrl(siteBase: string, lang: Lang, slug: string): string {
-  const lp = LANG_TO_PATH[lang] ?? "";
-  return lp ? `${siteBase}/${lp}/news/${slug}` : `${siteBase}/news/${slug}`;
-}
 
 export const GET: APIRoute = async ({ params, site }) => {
   const siteBase = (site?.href ?? SITE.website).replace(/\/$/, "");
@@ -44,7 +42,7 @@ export const GET: APIRoute = async ({ params, site }) => {
     .fetch<SanityRow[]>(
       `*[_type == "btgPost" && draft != true]
         | order(pubDatetime desc) [${start}...${end}] {
-          slug, lang, pubDatetime, modDatetime
+          slug, lang, category, articleType, pubDatetime, modDatetime
         }`,
     )
     .catch(() => [] as SanityRow[]);
@@ -59,7 +57,8 @@ export const GET: APIRoute = async ({ params, site }) => {
       const slug = typeof r.slug === "string" ? r.slug : r.slug?.current ?? "";
       if (!slug) return "";
       const lang = (r.lang ?? "zh-CN") as Lang;
-      const loc  = postUrl(siteBase, lang, slug);
+      const path = buildBtgPostHref(lang, r.category, slug, r.articleType);
+      const loc  = `${siteBase}${path}`;
       const lastmod = new Date(r.modDatetime ?? r.pubDatetime)
         .toISOString()
         .split("T")[0];

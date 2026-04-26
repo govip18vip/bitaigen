@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+import CategoryList from "@/components/CategoryList.astro";
+import { loadBtgPostList } from "@/utils/btgPostList";
+const page = Math.max(1, parseInt(Astro.url.searchParams.get("page") || "1", 10));
+const pageSize = 20;
+const tag = Astro.url.searchParams.get("tag") || undefined;
+const r = await loadBtgPostList({ category: "coins", lang: "zh-CN", page, pageSize, tag });
+---
+<CategoryList category="coins" lang="zh-CN" posts={r.posts} totalCount={r.totalCount} page={page} pageSize={pageSize} hasNext={r.hasNext} filterTag={tag} />
