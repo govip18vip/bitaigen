@@ -32,7 +32,7 @@ function applyTheme(theme: string): void {
 
   // 同步 window.theme
   if (!window.theme) (window as any).theme = {};
-  window.theme.themeValue = theme;
+  (window.theme as any).themeValue = theme;
 
   // 同步 button aria
   const btn = document.querySelector<HTMLElement>("#theme-btn");
