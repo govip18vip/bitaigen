@@ -150,13 +150,6 @@ const articleSchema = {
   isPartOf: { "@id": `${origin}/#website` },
   inLanguage: postLang,
   ...(post.tags?.length && { keywords: post.tags.join(", ") }),
-  ...(post.sourceUrl && post.sourceName && {
-    citation: {
-      "@type": "CreativeWork",
-      url: post.sourceUrl,
-      name: post.sourceName,
-    },
-  }),
 };
 
 const breadcrumbSchema = {
@@ -364,16 +357,6 @@ const pageTitle = `${post.title} | ${SITE.title}`;
                 </details>
               ))}
             </section>
-          )}
-
-          <!-- Source -->
-          {post.sourceUrl && (
-            <p class="nd-source">
-              {s.source}
-              <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">
-                {post.sourceName || post.sourceUrl}
-              </a>
-            </p>
           )}
 
           <!-- Author bio -->
