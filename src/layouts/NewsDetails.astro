@@ -23,6 +23,9 @@ import ExchangeCTA from "@/components/ExchangeCTA.astro";
 import SubscribeForm from "@/components/SubscribeForm.astro";
 import ScrollSubscribe from "@/components/ScrollSubscribe.astro";
 import BackToTopButton from "@/components/BackToTopButton.astro";
+import ArticleEnhancers from "@/components/ArticleEnhancers.astro";
+import ArticleCTA from "@/components/ArticleCTA.astro";
+import PriceChipInjector from "@/components/PriceChipInjector.astro";
 
 import { SITE } from "@/config";
 import { LANG_TO_PATH, useTranslations, type Lang } from "@/i18n/ui";
@@ -339,6 +342,9 @@ const pageTitle = `${post.title} | ${SITE.title}`;
           <!-- Article body -->
           <article id="article" class="app-prose nd-prose" itemprop="articleBody" data-pagefind-body set:html={bodyHtml} />
 
+          <!-- 文末大 CTA（KOL 转化高位） -->
+          <ArticleCTA lang={postLang} />
+
           <!-- Mid banner (affiliate) -->
           <div class="nd-banner-mid">
             <BinanceBanner variant="mid" lang={postLang} />
@@ -430,9 +436,14 @@ const pageTitle = `${post.title} | ${SITE.title}`;
   <!-- CoinOrbit hooks: auto-inject live price badges -->
   <script is:inline src="https://orbit.biyijia.com/widget.js" data-mode="hooks" data-sidebar="true"></script>
 
+  <!-- 文章交互增强：阅读进度条 + Sticky TOC + 回顶 -->
+  <ArticleEnhancers />
+
+  <!-- 加密币种实时价格 chip 自动注入文中首次出现处 -->
+  <PriceChipInjector />
+
   <ScrollSubscribe />
   <BinanceFloating lang={postLang} />
-  <BackToTopButton />
   <Footer />
 </Layout>
 

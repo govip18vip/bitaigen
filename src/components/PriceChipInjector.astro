@@ -1,0 +1,212 @@
+---
+// src/components/PriceChipInjector.astro
+// 自动扫描文章正文，检测加密币种关键词（BTC、以太坊、SOL...），
+// 在第一次出现的地方注入实时价格小卡（来自 Binance WebSocket）
+//
+// 设计原则：
+// - 渐进增强：JS 失败也不影响阅读
+// - 仅注入正文里"裸出现"的币种名（不在已有 <a> 内）
+// - 同一币种全文只注入一次（首次出现）
+// - 30 秒自动刷新
+---
+
+<script>
+  // ── 币种识别表 ──
+  const COIN_TOKENS: { symbol: string; pair: string; aliases: string[] }[] = [
+    { symbol: "BTC",   pair: "BTCUSDT",  aliases: ["BTC", "比特币", "比特幣", "Bitcoin"] },
+    { symbol: "ETH",   pair: "ETHUSDT",  aliases: ["ETH", "以太坊", "以太幣", "Ethereum"] },
+    { symbol: "BNB",   pair: "BNBUSDT",  aliases: ["BNB"] },
+    { symbol: "SOL",   pair: "SOLUSDT",  aliases: ["SOL", "Solana"] },
+    { symbol: "XRP",   pair: "XRPUSDT",  aliases: ["XRP", "瑞波"] },
+    { symbol: "DOGE",  pair: "DOGEUSDT", aliases: ["DOGE", "狗狗币", "狗狗幣"] },
+    { symbol: "ADA",   pair: "ADAUSDT",  aliases: ["ADA", "Cardano"] },
+    { symbol: "TRX",   pair: "TRXUSDT",  aliases: ["TRX", "波场", "波場"] },
+    { symbol: "DOT",   pair: "DOTUSDT",  aliases: ["DOT", "Polkadot", "波卡"] },
+    { symbol: "LINK",  pair: "LINKUSDT", aliases: ["LINK", "Chainlink"] },
+    { symbol: "AVAX",  pair: "AVAXUSDT", aliases: ["AVAX", "Avalanche"] },
+    { symbol: "MATIC", pair: "MATICUSDT", aliases: ["MATIC", "Polygon"] },
+    { symbol: "USDT",  pair: "",         aliases: ["USDT", "Tether"] },  // 稳定币不显示
+    { symbol: "USDC",  pair: "",         aliases: ["USDC"] },
+  ];
+
+  type Quote = { symbol: string; pair: string; price: number; pct: number; updatedAt: number };
+
+  function fmtPrice(p: number): string {
+    if (p >= 1000) return `$${p.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+    if (p >= 10) return `$${p.toFixed(2)}`;
+    if (p >= 0.01) return `$${p.toFixed(4)}`;
+    return `$${p.toPrecision(4)}`;
+  }
+
+  function fmtPct(p: number): string {
+    const sign = p >= 0 ? "+" : "";
+    return `${sign}${p.toFixed(2)}%`;
+  }
+
+  // 把 chip 插到每个币种第一次裸出现的位置
+  async function injectPriceChips() {
+    const article = document.getElementById("article");
+    if (!article) return;
+
+    // 收集文中实际出现的币种
+    const text = article.textContent || "";
+    const detected: typeof COIN_TOKENS = [];
+    for (const t of COIN_TOKENS) {
+      if (!t.pair) continue; // 跳过稳定币
+      if (t.aliases.some((a) => text.includes(a))) {
+        detected.push(t);
+      }
+    }
+    if (detected.length === 0) return;
+
+    // 拉一次价格（24h ticker 包含价格 + 涨跌幅）
+    const quotes: Map<string, Quote> = new Map();
+    try {
+      const symbols = detected.map((t) => `"${t.pair}"`).join(",");
+      const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${encodeURIComponent(symbols)}]`;
+      const resp = await fetch(url, { mode: "cors" });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      for (const item of data) {
+        const t = detected.find((x) => x.pair === item.symbol);
+        if (!t) continue;
+        quotes.set(t.symbol, {
+          symbol: t.symbol,
+          pair: t.pair,
+          price: parseFloat(item.lastPrice),
+          pct: parseFloat(item.priceChangePercent),
+          updatedAt: Date.now(),
+        });
+      }
+    } catch {
+      return;
+    }
+
+    // 给每个 detected 币种在首次裸出现位置插入 chip
+    const inserted = new Set<string>();
+    const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT, null);
+    const nodes: Text[] = [];
+    let n: Node | null;
+    while ((n = walker.nextNode())) {
+      if (n.parentElement?.closest("a, code, pre, .cta-block, .price-chip, .nd-tag")) continue;
+      nodes.push(n as Text);
+    }
+
+    for (const node of nodes) {
+      if (inserted.size >= detected.length) break;
+      const original = node.nodeValue || "";
+
+      for (const t of detected) {
+        if (inserted.has(t.symbol)) continue;
+        const q = quotes.get(t.symbol);
+        if (!q) continue;
+        for (const alias of t.aliases) {
+          // 用正则做"词边界"匹配（中文不需要边界）
+          let pattern: RegExp;
+          if (/^[A-Za-z]+$/.test(alias)) {
+            pattern = new RegExp(`\\b(${alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})\\b`);
+          } else {
+            pattern = new RegExp(`(${alias.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")})`);
+          }
+          const m = pattern.exec(original);
+          if (!m) continue;
+
+          // 拆分文本节点，在匹配位置后插入 chip
+          const idx = m.index + m[0].length;
+          const after = node.splitText(idx);
+          const chip = document.createElement("span");
+          chip.className = "price-chip";
+          chip.dataset.symbol = t.symbol;
+          chip.dataset.pair = t.pair;
+          const trendCls = q.pct >= 0 ? "is-up" : "is-down";
+          chip.classList.add(trendCls);
+          chip.innerHTML = `
+            <span class="pc-sym">${t.symbol}</span>
+            <span class="pc-price">${fmtPrice(q.price)}</span>
+            <span class="pc-pct">${fmtPct(q.pct)}</span>
+          `;
+          chip.title = `${t.symbol}/USDT · 24h ${fmtPct(q.pct)} · 数据来自 Binance`;
+          after.parentNode?.insertBefore(chip, after);
+          inserted.add(t.symbol);
+          break;
+        }
+      }
+    }
+
+    // 30s 自动刷新已插入的 chip 价格
+    if (inserted.size > 0) {
+      setTimeout(refreshChips, 30000);
+    }
+  }
+
+  async function refreshChips() {
+    const chips = document.querySelectorAll<HTMLElement>(".price-chip[data-pair]");
+    if (chips.length === 0) return;
+    const pairs = Array.from(new Set(Array.from(chips).map((c) => c.dataset.pair).filter(Boolean)));
+    if (pairs.length === 0) return;
+    try {
+      const symbolsParam = pairs.map((p) => `"${p}"`).join(",");
+      const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${encodeURIComponent(symbolsParam)}]`;
+      const resp = await fetch(url, { mode: "cors" });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const quoteMap = new Map<string, { price: number; pct: number }>();
+      for (const it of data) {
+        quoteMap.set(it.symbol, {
+          price: parseFloat(it.lastPrice),
+          pct: parseFloat(it.priceChangePercent),
+        });
+      }
+      chips.forEach((c) => {
+        const q = quoteMap.get(c.dataset.pair || "");
+        if (!q) return;
+        const pricEl = c.querySelector<HTMLElement>(".pc-price");
+        const pctEl = c.querySelector<HTMLElement>(".pc-pct");
+        if (pricEl) pricEl.textContent = fmtPrice(q.price);
+        if (pctEl) pctEl.textContent = fmtPct(q.pct);
+        c.classList.remove("is-up", "is-down");
+        c.classList.add(q.pct >= 0 ? "is-up" : "is-down");
+      });
+    } catch {}
+    setTimeout(refreshChips, 30000);
+  }
+
+  function init() {
+    // 延迟一点执行，避免阻塞 LCP
+    if (document.readyState === "complete") {
+      setTimeout(injectPriceChips, 1200);
+    } else {
+      window.addEventListener("load", () => setTimeout(injectPriceChips, 1200));
+    }
+  }
+
+  init();
+  document.addEventListener("astro:after-swap", () => setTimeout(injectPriceChips, 1200));
+</script>
+
+<style is:global>
+  .price-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px;
+    margin: 0 4px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    font-weight: 600;
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    vertical-align: baseline;
+    white-space: nowrap;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    cursor: help;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .price-chip:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated)); }
+  .price-chip .pc-sym { font-weight: 700; color: var(--fg); letter-spacing: 0.02em; }
+  .price-chip .pc-price { color: var(--fg); }
+  .price-chip .pc-pct { font-weight: 700; }
+  .price-chip.is-up .pc-pct { color: #0ECB81; }
+  .price-chip.is-down .pc-pct { color: #F6465D; }
+</style>

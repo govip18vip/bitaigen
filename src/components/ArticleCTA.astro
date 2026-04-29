@@ -1,0 +1,474 @@
+---
+// src/components/ArticleCTA.astro
+// 双 CTA：
+//   1. 文末大块（固定在所有详情页正文末尾，转化率最高位置）
+//   2. 移动端底部 Sticky 条（滚动 50% 后浮出）
+//
+// 多语言文案 + 邀请码 B2345 + 一键复制
+import { type Lang } from "@/i18n/ui";
+
+interface Props { lang?: string }
+const { lang = "zh-CN" } = Astro.props;
+
+const REF = "B2345";
+const REG_URL = `https://accounts.binance.com/register?ref=${REF}`;
+const APK = "https://basebiance.com/binanceapkcn";
+
+// 多语言文案
+const T: Record<string, {
+  title: string;
+  subtitle: string;
+  benefit1: string;
+  benefit2: string;
+  benefit3: string;
+  refLabel: string;
+  copy: string;
+  copied: string;
+  primary: string;
+  secondary: string;
+  disclaimer: string;
+  stickyTitle: string;
+  stickyCta: string;
+  guideLink: string;
+}> = {
+  "zh-CN": {
+    title: "立即注册币安交易所",
+    subtitle: "全球最大加密货币交易平台，使用专属邀请码享最高手续费折扣。",
+    benefit1: "0.075% 现货手续费（业界最低）",
+    benefit2: "350+ 加密货币 · 24/7 交易",
+    benefit3: "10亿美金 SAFU 用户保护基金",
+    refLabel: "专属邀请码",
+    copy: "复制",
+    copied: "已复制 ✓",
+    primary: "📱 下载币安 APP",
+    secondary: "🌐 网页注册",
+    disclaimer: "⚠️ 加密货币投资有风险，请理性评估自身承受能力。本站与币安存在联盟合作关系。",
+    stickyTitle: "立即注册币安",
+    stickyCta: "邀请码 B2345 注册",
+    guideLink: "/binance",
+  },
+  "zh-TW": {
+    title: "立即註冊幣安交易所",
+    subtitle: "全球最大加密貨幣交易平台，使用專屬邀請碼享最高手續費折扣。",
+    benefit1: "0.075% 現貨手續費（業界最低）",
+    benefit2: "350+ 加密貨幣 · 24/7 交易",
+    benefit3: "10億美金 SAFU 用戶保護基金",
+    refLabel: "專屬邀請碼",
+    copy: "複製",
+    copied: "已複製 ✓",
+    primary: "📱 下載幣安 App",
+    secondary: "🌐 網頁註冊",
+    disclaimer: "⚠️ 加密貨幣投資有風險，請理性評估自身承受能力。本站與幣安存在聯盟合作關係。",
+    stickyTitle: "立即註冊幣安",
+    stickyCta: "邀請碼 B2345 註冊",
+    guideLink: "/zh-tw/binance",
+  },
+  "en": {
+    title: "Sign Up on Binance Now",
+    subtitle: "The world's largest crypto exchange. Use our exclusive code to unlock the maximum trading fee discount.",
+    benefit1: "0.075% spot fees (industry low)",
+    benefit2: "350+ cryptocurrencies · 24/7 trading",
+    benefit3: "$1B+ SAFU user protection fund",
+    refLabel: "Referral Code",
+    copy: "Copy",
+    copied: "Copied ✓",
+    primary: "📱 Download Binance App",
+    secondary: "🌐 Sign Up Online",
+    disclaimer: "⚠️ Crypto investing carries risk. We have an affiliate partnership with Binance.",
+    stickyTitle: "Sign Up on Binance",
+    stickyCta: "Use code B2345 to register",
+    guideLink: "/en/binance",
+  },
+  "es": {
+    title: "Regístrate en Binance Ahora",
+    subtitle: "El exchange de criptomonedas más grande del mundo. Usa nuestro código exclusivo para el descuento máximo en comisiones.",
+    benefit1: "Comisiones spot 0.075% (las más bajas)",
+    benefit2: "350+ criptomonedas · 24/7",
+    benefit3: "Fondo SAFU $1B+ protección usuarios",
+    refLabel: "Código de Referido",
+    copy: "Copiar",
+    copied: "Copiado ✓",
+    primary: "📱 Descargar App Binance",
+    secondary: "🌐 Registro Web",
+    disclaimer: "⚠️ Las inversiones en cripto conllevan riesgos. Asociación de afiliado con Binance.",
+    stickyTitle: "Regístrate en Binance",
+    stickyCta: "Código B2345 — registrarse",
+    guideLink: "/es/binance",
+  },
+  "pt": {
+    title: "Cadastre-se na Binance Agora",
+    subtitle: "A maior corretora de criptomoedas do mundo. Use nosso código exclusivo para o desconto máximo em taxas.",
+    benefit1: "Taxas spot 0.075% (mais baixas)",
+    benefit2: "350+ criptomoedas · 24/7",
+    benefit3: "Fundo SAFU US$1B+ proteção",
+    refLabel: "Código de Indicação",
+    copy: "Copiar",
+    copied: "Copiado ✓",
+    primary: "📱 Baixar App Binance",
+    secondary: "🌐 Cadastro Web",
+    disclaimer: "⚠️ Investir em cripto envolve riscos. Parceria de afiliado com Binance.",
+    stickyTitle: "Cadastre-se na Binance",
+    stickyCta: "Código B2345 — cadastrar",
+    guideLink: "/pt/binance",
+  },
+};
+const t = T[lang] || T["zh-CN"];
+---
+
+<!-- 1. 文末大 CTA 块 -->
+<section class="cta-block" data-cta-block>
+  <div class="cta-block-glow"></div>
+  <div class="cta-block-inner">
+    <div class="cta-block-header">
+      <h2 class="cta-block-title">{t.title}</h2>
+      <p class="cta-block-subtitle">{t.subtitle}</p>
+    </div>
+
+    <ul class="cta-block-benefits" role="list">
+      <li><span class="cta-check">✓</span> {t.benefit1}</li>
+      <li><span class="cta-check">✓</span> {t.benefit2}</li>
+      <li><span class="cta-check">✓</span> {t.benefit3}</li>
+    </ul>
+
+    <div class="cta-block-code">
+      <span class="cta-code-label">{t.refLabel}</span>
+      <span class="cta-code-value" id="cta-code">{REF}</span>
+      <button class="cta-code-copy" data-cta-copy data-original={t.copy} data-copied={t.copied}>
+        {t.copy}
+      </button>
+    </div>
+
+    <div class="cta-block-actions">
+      <a href={REG_URL} target="_blank" rel="noopener noreferrer nofollow sponsored"
+         class="cta-btn cta-btn-primary"
+         data-cta-track="article-end-primary">
+        {t.secondary}
+      </a>
+      <a href={APK} target="_blank" rel="noopener noreferrer nofollow sponsored"
+         class="cta-btn cta-btn-secondary"
+         data-cta-track="article-end-apk">
+        {t.primary}
+      </a>
+    </div>
+
+    <p class="cta-block-disclaimer">{t.disclaimer}</p>
+    <a href={t.guideLink} class="cta-block-guide-link">📖 {lang.startsWith("zh") ? "查看完整币安教程" : "View full Binance guide"} →</a>
+  </div>
+</section>
+
+<!-- 2. 移动端 Sticky 底部 CTA 条（滚动后浮出） -->
+<div class="cta-mobile-sticky" id="cta-mobile-sticky" aria-hidden="true">
+  <div class="cta-mobile-text">
+    <strong>{t.stickyTitle}</strong>
+    <span class="cta-mobile-code">{REF}</span>
+  </div>
+  <a href={REG_URL} target="_blank" rel="noopener noreferrer nofollow sponsored"
+     class="cta-mobile-btn"
+     data-cta-track="mobile-sticky">
+    {t.stickyCta}
+  </a>
+</div>
+
+<style>
+  /* ── 1. 文末大 CTA 块 ── */
+  .cta-block {
+    position: relative;
+    margin: 48px 0 32px;
+    padding: 36px 28px;
+    border-radius: 16px;
+    background:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 12%, transparent),
+        color-mix(in srgb, var(--accent) 4%, transparent)),
+      var(--bg-card);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .cta-block-glow {
+    position: absolute;
+    top: -40%; left: -10%;
+    width: 80%; height: 200%;
+    background: radial-gradient(ellipse, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 60%);
+    z-index: -1;
+    pointer-events: none;
+  }
+  .cta-block-inner { position: relative; z-index: 1; }
+  .cta-block-header { text-align: center; margin-bottom: 24px; }
+  .cta-block-title {
+    font-size: clamp(20px, 3vw, 26px);
+    font-weight: 800;
+    color: var(--fg);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .cta-block-subtitle {
+    font-size: 14.5px;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .cta-block-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 22px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .cta-block-benefits li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--fg);
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+    border-radius: 8px;
+  }
+  .cta-check {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .cta-block-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    margin: 18px 0 22px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-elevated));
+    border: 1.5px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+    border-radius: 10px;
+  }
+  .cta-code-label {
+    font-size: 12.5px;
+    color: var(--fg-muted);
+    font-weight: 600;
+  }
+  .cta-code-value {
+    font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+  }
+  .cta-code-copy {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .cta-code-copy:hover { opacity: 0.88; transform: translateY(-1px); }
+  .cta-code-copy:active { transform: translateY(0); }
+
+  .cta-block-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .cta-btn {
+    flex: 1;
+    min-width: 180px;
+    padding: 14px 24px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 700;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .cta-btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .cta-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .cta-btn-secondary {
+    background: transparent;
+    color: var(--fg);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--border));
+  }
+  .cta-btn-secondary:hover {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  .cta-block-disclaimer {
+    font-size: 11.5px;
+    color: var(--fg-light);
+    text-align: center;
+    line-height: 1.55;
+    margin: 12px 0 8px;
+  }
+  .cta-block-guide-link {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .cta-block-guide-link:hover { text-decoration: underline; }
+
+  /* ── 2. 移动端 Sticky 底部条 ── */
+  .cta-mobile-sticky {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 10px 14px;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-card) 95%, transparent),
+      var(--bg-card));
+    border-top: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    transform: translateY(110%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    align-items: center;
+    gap: 10px;
+  }
+  .cta-mobile-sticky.is-visible {
+    transform: translateY(0);
+  }
+  .cta-mobile-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+  .cta-mobile-text strong {
+    font-size: 13px;
+    color: var(--fg);
+    font-weight: 700;
+  }
+  .cta-mobile-code {
+    font-size: 11px;
+    color: var(--fg-muted);
+    font-family: ui-monospace, monospace;
+  }
+  .cta-mobile-btn {
+    flex-shrink: 0;
+    padding: 11px 16px;
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .cta-mobile-sticky { display: flex; }
+    .cta-block { padding: 28px 18px; margin: 36px 0 24px; }
+    .cta-block-actions { flex-direction: column; gap: 10px; }
+    .cta-btn { min-width: 0; }
+    /* 给移动端正文底部留出 sticky 条空间，避免遮住最后一段 */
+    body { padding-bottom: 70px; }
+  }
+</style>
+
+<script>
+  // 复制邀请码 + 触发事件用于 GA / Vercel Analytics 追踪
+  function initCtaCopy() {
+    document.querySelectorAll<HTMLButtonElement>("[data-cta-copy]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const code = (document.getElementById("cta-code")?.textContent || "B2345").trim();
+        try {
+          await navigator.clipboard.writeText(code);
+        } catch {
+          // 兜底
+          const ta = document.createElement("textarea");
+          ta.value = code;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch {}
+          ta.remove();
+        }
+        const original = btn.dataset.original || "Copy";
+        const copied = btn.dataset.copied || "Copied ✓";
+        btn.textContent = copied;
+        btn.classList.add("is-copied");
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.classList.remove("is-copied");
+        }, 1500);
+
+        // 上报点击
+        try {
+          (window as any).gtag?.("event", "cta_copy_code", { code });
+        } catch {}
+      });
+    });
+  }
+
+  // 移动端 Sticky CTA 滚动 30% 后浮出
+  function initMobileSticky() {
+    const sticky = document.getElementById("cta-mobile-sticky");
+    if (!sticky) return;
+    function onScroll() {
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      if (total <= 0) return;
+      const pct = window.pageYOffset / total;
+      if (pct > 0.30 && pct < 0.95) {
+        sticky!.classList.add("is-visible");
+        sticky!.setAttribute("aria-hidden", "false");
+      } else {
+        sticky!.classList.remove("is-visible");
+        sticky!.setAttribute("aria-hidden", "true");
+      }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
+
+  // 链接点击事件追踪
+  function initCtaTracking() {
+    document.querySelectorAll<HTMLAnchorElement>("[data-cta-track]").forEach(a => {
+      a.addEventListener("click", () => {
+        try {
+          (window as any).gtag?.("event", "cta_click", {
+            position: a.dataset.ctaTrack,
+            href: a.href,
+          });
+        } catch {}
+      });
+    });
+  }
+
+  function initAll() {
+    initCtaCopy();
+    initMobileSticky();
+    initCtaTracking();
+  }
+
+  initAll();
+  document.addEventListener("astro:after-swap", initAll);
+</script>

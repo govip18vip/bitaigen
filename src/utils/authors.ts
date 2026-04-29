@@ -43,6 +43,52 @@ export const AUTHORS: Record<string, Author> = {
     twitter:  "https://x.com/tanfyoo",
     telegram: "https://t.me/AllenAmbrose",
   },
+
+  // 资深研究员（侧重深度分析、币种百科、技术解读）
+  "alex-yan": {
+    slug: "alex-yan",
+    name: "Alex Yan",
+    title: {
+      "zh-CN": "区块链研究员 · 7 年加密市场经验",
+      "zh-TW": "區塊鏈研究員 · 7 年加密市場經驗",
+      en:      "Blockchain Researcher · 7yr Crypto Market Experience",
+      es:      "Investigador Blockchain · 7 años de experiencia en cripto",
+      pt:      "Pesquisador Blockchain · 7 anos de experiência cripto",
+    },
+    bio: {
+      "zh-CN": "Alex 自 2018 年起持续追踪 BTC/ETH 周期与链上数据，曾撰写超 500 篇加密分析报告。专注于 L1/L2 技术、稳定币机制及代币经济学研究。文中数据均交叉验证 CoinGecko、Glassnode、Dune 等公开来源。",
+      "zh-TW": "Alex 自 2018 年起持續追蹤 BTC/ETH 週期與鏈上數據，撰寫超過 500 篇加密分析報告。專注於 L1/L2 技術、穩定幣機制與代幣經濟學研究。",
+      en:      "Alex has tracked BTC/ETH cycles and on-chain data since 2018, authoring 500+ crypto research reports. Specializes in L1/L2 protocols, stablecoin mechanics and tokenomics. All figures cross-checked against CoinGecko, Glassnode, and Dune.",
+      es:      "Alex sigue ciclos de BTC/ETH y datos on-chain desde 2018, con más de 500 informes de investigación cripto. Especializado en protocolos L1/L2, mecánica de stablecoins y tokenomics.",
+      pt:      "Alex acompanha os ciclos de BTC/ETH e dados on-chain desde 2018, com mais de 500 relatórios de pesquisa cripto. Especializado em protocolos L1/L2, mecânica de stablecoins e tokenomics.",
+    },
+    avatar: "/favicon.svg",
+    expertise: ["Bitcoin", "Ethereum", "L2", "Stablecoin", "Tokenomics", "On-chain Analysis", "DeFi"],
+    twitter:  "https://x.com/tanfyoo",
+  },
+
+  // 交易实操专家（侧重交易所、钱包、入门教程）
+  "li-wenhui": {
+    slug: "li-wenhui",
+    name: "Li Wenhui",
+    title: {
+      "zh-CN": "加密交易实操专家 · 币安/OKX 老用户",
+      "zh-TW": "加密交易實操專家 · 幣安/OKX 老用戶",
+      en:      "Crypto Trading Practitioner · Long-term Binance/OKX user",
+      es:      "Experto en Trading Cripto · Usuario de larga data Binance/OKX",
+      pt:      "Especialista em Trading Cripto · Usuário antigo Binance/OKX",
+    },
+    bio: {
+      "zh-CN": "文辉从 2019 年开始参与币安、OKX、Bybit 等交易所的现货与合约交易，亲历多轮牛熊周期。专注分享交易所注册、KYC、入金提币、合约风控等实操教程，所有步骤均亲测可行。建议读者先用小额练手，再放大仓位。",
+      "zh-TW": "文輝從 2019 年開始參與幣安、OKX、Bybit 等交易所的現貨與合約交易，親歷多輪牛熊週期。專注分享交易所操作教程，所有步驟均親測可行。",
+      en:      "Wenhui has been actively trading spot and derivatives on Binance, OKX, and Bybit since 2019, surviving multiple bull-bear cycles. Focuses on hands-on tutorials for exchange signup, KYC, deposit/withdrawal, and futures risk control. All steps personally tested.",
+      es:      "Wenhui opera en spot y derivados en Binance, OKX y Bybit desde 2019. Comparte tutoriales prácticos sobre exchanges, KYC, depósitos/retiros y gestión de riesgo en futuros. Todos los pasos probados personalmente.",
+      pt:      "Wenhui negocia spot e derivativos na Binance, OKX e Bybit desde 2019. Compartilha tutoriais práticos sobre exchanges, KYC, depósitos/saques e gestão de risco em futuros. Todos os passos testados pessoalmente.",
+    },
+    avatar: "/favicon.svg",
+    expertise: ["Binance", "OKX", "Bybit", "现货交易", "合约交易", "KYC", "钱包安全", "风控"],
+    telegram: "https://t.me/AllenAmbrose",
+  },
 };
 
 /** 按 slug 查找作者，找不到时回退到 bitaigen */
