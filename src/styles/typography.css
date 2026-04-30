@@ -5,6 +5,52 @@
   .app-prose {
     @apply prose;
 
+    /* ─────────────────────────────────────────────────────────
+       Remap Tailwind Typography (--tw-prose-*) hard-coded grays
+       to our theme-aware CSS variables so dark mode actually works.
+       Tailwind's default --tw-prose-body is #374151 — invisible
+       on our dark background #0d0e14. We point every prose token
+       at site tokens that already swap on [data-theme="dark"].
+       (Both the regular and "-invert" sets — covers prose-invert too.)
+       ───────────────────────────────────────────────────────── */
+    --tw-prose-body:           var(--fg);
+    --tw-prose-headings:       var(--fg);
+    --tw-prose-lead:           var(--fg-muted);
+    --tw-prose-links:          var(--accent);
+    --tw-prose-bold:           var(--fg);
+    --tw-prose-counters:       var(--fg-muted);
+    --tw-prose-bullets:        var(--accent);
+    --tw-prose-hr:             var(--border);
+    --tw-prose-quotes:         var(--fg);
+    --tw-prose-quote-borders:  var(--accent);
+    --tw-prose-captions:       var(--fg-muted);
+    --tw-prose-kbd:            var(--fg);
+    --tw-prose-kbd-shadows:    var(--border);
+    --tw-prose-code:           var(--fg);
+    --tw-prose-pre-code:       var(--fg);
+    --tw-prose-pre-bg:         var(--bg-elevated);
+    --tw-prose-th-borders:     var(--border);
+    --tw-prose-td-borders:     var(--border-subtle);
+
+    --tw-prose-invert-body:           var(--fg);
+    --tw-prose-invert-headings:       var(--fg);
+    --tw-prose-invert-lead:           var(--fg-muted);
+    --tw-prose-invert-links:          var(--accent);
+    --tw-prose-invert-bold:           var(--fg);
+    --tw-prose-invert-counters:       var(--fg-muted);
+    --tw-prose-invert-bullets:        var(--accent);
+    --tw-prose-invert-hr:             var(--border);
+    --tw-prose-invert-quotes:         var(--fg);
+    --tw-prose-invert-quote-borders:  var(--accent);
+    --tw-prose-invert-captions:       var(--fg-muted);
+    --tw-prose-invert-kbd:            var(--fg);
+    --tw-prose-invert-kbd-shadows:    var(--border);
+    --tw-prose-invert-code:           var(--fg);
+    --tw-prose-invert-pre-code:       var(--fg);
+    --tw-prose-invert-pre-bg:         var(--bg-elevated);
+    --tw-prose-invert-th-borders:     var(--border);
+    --tw-prose-invert-td-borders:     var(--border-subtle);
+
     h1,
     h2,
     h3,
@@ -19,11 +65,22 @@
 
     p,
     strong,
+    em,
+    b,
+    i,
     ol,
     ul,
+    li,
     figcaption,
     table,
-    code {
+    code,
+    mark,
+    del,
+    sub,
+    sup,
+    dl,
+    dt,
+    dd {
       @apply text-foreground;
     }
 
@@ -75,7 +132,17 @@
     }
 
     blockquote {
-      @apply border-s-accent/80 wrap-break-word opacity-80;
+      @apply border-s-accent/80 wrap-break-word text-foreground;
+      /* 取代原来的 opacity-80 —— 暗色模式下 80% 不透明度让本就不易读的引用更糊。
+         显式 text-foreground + 微透 background 替代视觉降权。 */
+      background: color-mix(in srgb, var(--accent) 5%, transparent);
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+    }
+    blockquote p,
+    blockquote strong,
+    blockquote em {
+      color: var(--fg);
     }
 
     details {
